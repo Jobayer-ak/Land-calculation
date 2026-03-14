@@ -364,7 +364,12 @@ export function DynamicOwner() {
               <h3 className="text-lg font-semibold">
                 মালিকগণ ({owners.length} জন)
               </h3>
-              <Button onClick={addOwner} variant="outline" size="sm">
+              <Button
+                onClick={addOwner}
+                variant="outline"
+                size="sm"
+                className="cursor-pointer bg-gray-600 hover:bg-green-600 text-white"
+              >
                 <PlusCircle className="h-4 w-4 mr-2" />
                 নতুন মালিক যোগ করুন
               </Button>
@@ -388,10 +393,10 @@ export function DynamicOwner() {
                           onClick={() => removeOwner(owner.id)}
                           variant="ghost"
                           size="icon"
-                          className="text-destructive"
+                          className=" cursor-pointer bg-gray-600 hover:bg-red-500 text-white"
                           disabled={owners.length <= 1}
                         >
-                          <MinusCircle className="h-4 w-4" />
+                          <MinusCircle className="h-6 w-6" />
                         </Button>
                       </div>
 

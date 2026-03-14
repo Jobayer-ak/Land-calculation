@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Asset Test</title>
+    <style>
+        body { font-family: sans-serif; padding: 20px; background: #f5f5f5; }
+        .card { background: white; border-radius: 8px; padding: 15px; margin: 10px 0; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
+        .success { color: #10b981; font-weight: bold; }
+        .error { color: #ef4444; font-weight: bold; }
+        h1 { color: #2563eb; }
+        pre { background: #f0f0f0; padding: 10px; border-radius: 4px; overflow-x: auto; }
+    </style>
+</head>
+<body>
+    <h1>🔍 অ্যাসেট টেস্ট পেজ</h1>
+    <p>পাসওয়ার্ড: <strong>Bhai123@2026</strong></p>
+    
+    <div class="card">
+        <h2>📁 _next ফোল্ডার চেক</h2>
+        <div id="next-check">চেক করা হচ্ছে...</div>
+    </div>
+    
+    <div class="card">
+        <h2>🎨 CSS ফাইল চেক</h2>
+        <div id="css-check">চেক করা হচ্ছে...</div>
+    </div>
+    
+    <div class="card">
+        <h2>📊 কনসোল লগ</h2>
+        <pre id="console-log"></pre>
+    </div>
+    
+    <script>
+        const logDiv = document.getElementById('console-log');
+        function log(msg) {
+            logDiv.textContent += msg + '\n';
+            console.log(msg);
+        }
+        
+        // _next ফোল্ডার চেক
+        fetch('/_next/static/css/')
+            .then(res => {
+                const div = document.getElementById('next-check');
+                if (res.ok) {
+                    div.innerHTML = '<span class="success">✅ _next ফোল্ডার অ্যাক্সেসযোগ্য</span>';
+                } else {
+                    div.innerHTML = '<span class="error">❌ _next ফোল্ডার অ্যাক্সেসযোগ্য নয়</span>';
+                }
+            })
+            .catch(() => {
+                document.getElementById('next-check').innerHTML = '<span class="error">❌ _next ফোল্ডার পাওয়া যায়নি</span>';
+            });
+        
+        // CSS ফাইল চেক
+        setTimeout(() => {
+            const links = document.querySelectorAll('link[rel="stylesheet"]');
+            const cssDiv = document.getElementById('css-check');
+            let cssHtml = '';
+            
+            if (links.length === 0) {
+                cssHtml = '<span class="error">❌ কোন CSS ফাইল পাওয়া যায়নি</span>';
+            } else {
+                cssHtml = '<span class="success">✅ CSS ফাইল পাওয়া গেছে:</span><ul>';
+                links.forEach(link => {
+                    cssHtml += `<li>${link.href} - ${link.href.startsWith('/_next/') ? '✅' : '⚠️'}</li>`;
+                });
+                cssHtml += '</ul>';
+            }
+            cssDiv.innerHTML = cssHtml;
+        }, 500);
+    </script>
+</body>
+</html>

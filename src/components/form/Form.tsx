@@ -241,18 +241,26 @@ export function Form() {
           </div>
 
           {/* Action Buttons */}
-          <div className="flex gap-3">
-            <Button onClick={calculatePercentage} className="flex-1">
+          <div className="flex justify-between gap-3 mb-5">
+            <Button
+              onClick={calculatePercentage}
+              className="flex-1 cursor-pointer text-black text-lg font-medium bg-amber-600 hover:bg-black hover:text-white"
+            >
               শতাংশে রূপান্তর করুন
             </Button>
-            <Button onClick={resetForm} variant="outline" className="flex-1">
+            <Button
+              onClick={resetForm}
+              variant="outline"
+              className="flex-1 text-lg font-medium text-white bg-gray-600 hover:bg-green-600 cursor-pointer"
+            >
               রিসেট করুন
             </Button>
           </div>
 
           {/* Result */}
+
           {result !== null && (
-            <div className="mt-4 p-4 bg-primary/10 rounded-lg border border-primary/20">
+            <div className="mt-12 p-4 bg-primary/10 rounded-lg border border-primary/20">
               <Label className="text-lg font-semibold text-primary">
                 ফলাফল:
               </Label>
@@ -268,7 +276,7 @@ export function Form() {
           )}
 
           {/* Info Section */}
-          <div className="mt-6 text-sm text-muted-foreground border-t pt-4">
+          <div className="mt-6 text-md text-muted-foreground border-t pt-4">
             <h4 className="font-semibold mb-2">স্মরণীয় সূত্র:</h4>
             <ul className="list-disc list-inside space-y-1">
               <li>১ আনা = ২০ গন্ডা</li>
