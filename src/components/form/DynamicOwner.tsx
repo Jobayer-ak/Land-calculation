@@ -379,24 +379,6 @@ export function DynamicOwner() {
       <CardContent>
         <div className="space-y-6">
           {/* Total Land Section */}
-          <div className="border rounded-lg p-4 bg-muted/30">
-            <h3 className="text-lg font-semibold mb-3">মোট জমির পরিমাণ</h3>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label htmlFor="total-decimal">মোট জমি (দশমিকে)</Label>
-                <Input
-                  id="total-decimal"
-                  type="number"
-                  step="0.01"
-                  min="0"
-                  value={totalDecimal}
-                  onChange={(e) => handleTotalDecimalChange(e.target.value)}
-                  placeholder="যেমন: ১৫০"
-                  className="w-full"
-                />
-              </div>
-            </div>
-          </div>
 
           {/* Owners Section */}
           <div className="space-y-4">
@@ -627,23 +609,43 @@ export function DynamicOwner() {
           </div>
 
           {/* Action Buttons */}
-          <div className="flex gap-3 pt-4">
-            <Button
-              onClick={calculateDistribution}
-              className="flex-1 text-lg bg-amber-600 text-black font-bold cursor-pointer hover:text-white"
-              size="lg"
-            >
-              <Calculator className="h-4 w-4 mr-2" />
-              হিস্যা বের করুন
-            </Button>
-            <Button
-              onClick={resetCalculator}
-              variant="outline"
-              className="flex-1 text-lg font-bold text-black cursor-pointer bg-green-400 hover:bg-red-600 hover:text-white "
-              size="lg"
-            >
-              রিসেট করুন
-            </Button>
+          <div className="flex justify-between gap-0 px-4 pt-4">
+            <div className="flex justify-between items-center gap-4">
+              <Label
+                htmlFor="total-decimal"
+                className="text-xl whitespace-nowrap font-bold text-red-600"
+              >
+                মোট জমি:
+              </Label>
+              <Input
+                id="total-decimal"
+                type="number"
+                step="0.01"
+                min="0"
+                value={totalDecimal}
+                onChange={(e) => handleTotalDecimalChange(e.target.value)}
+                placeholder="100"
+                className="w-32"
+              />
+            </div>
+            <div className="flex items-center gap-4">
+              <Button
+                onClick={calculateDistribution}
+                className="text-lg bg-amber-600 text-black font-bold cursor-pointer hover:text-white"
+                size="lg"
+              >
+                <Calculator className="h-4 w-4 mr-2" />
+                হিস্যা বের করুন
+              </Button>
+              <Button
+                onClick={resetCalculator}
+                variant="outline"
+                className=" text-lg font-bold text-black cursor-pointer bg-green-400 hover:bg-red-600 hover:text-white "
+                size="lg"
+              >
+                রিসেট করুন
+              </Button>
+            </div>
           </div>
 
           {/* Summary Result */}
@@ -714,26 +716,6 @@ export function DynamicOwner() {
                 <span className="font-bold">ক্রান্তি:</span> ১=৴, ২=৴৴
               </div>
             </div>
-            <h4 className="font-semibold mb-2">ব্যবহার নির্দেশিকা:</h4>
-            <ul className="list-disc list-inside space-y-1">
-              <li>প্রথমে মোট জমির পরিমাণ দশমিকে দিন (যেমন: ১৫০ দশমিক)</li>
-              <li>
-                প্রতি মালিকের দলিল অনুযায়ী আনা-গন্ডা নির্বাচন করুন (প্রতীক সহ
-                দেখতে পাবেন)
-              </li>
-              <li>&quot;হিস্যা বের করুন&quot; বাটনে ক্লিক করুন</li>
-              <li>
-                ফলাফলে দেখাবে:
-                <ul className="list-circle list-inside ml-6 mt-1">
-                  <li>অংশ (১ এর মধ্যে) - দশমিক সংখ্যায় (৬ দশমিক পর্যন্ত)</li>
-                  <li>শতাংশ - মোট জমির কত শতাংশ</li>
-                  <li>দশমিকে জমি - প্রকৃত জমির পরিমাণ দশমিকে</li>
-                </ul>
-              </li>
-              <li className="font-semibold text-purple-600">
-                সব অংশের যোগফল সবসময় ১ হবে
-              </li>
-            </ul>
           </div>
         </div>
       </CardContent>
