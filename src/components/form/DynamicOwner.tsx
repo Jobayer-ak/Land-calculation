@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-unused-vars */
 'use client';
 
 import { Button } from '@/components/ui/button';
@@ -92,6 +93,11 @@ export function DynamicOwner() {
   const [totalDecimal, setTotalDecimal] = useState<number>(150); // মোট জমি দশমিকে (ডিফল্ট ১৫০)
   const [totalLandInGonda, setTotalLandInGonda] = useState<number>(0); // মোট জমি গন্ডায়
   const [totalLandInTil, setTotalLandInTil] = useState<number>(0); // মোট জমি তিলে
+  const [anaTotal, setAnaTotal] = useState<number>(0);
+  const [gondaTotal, setGondaTotal] = useState<number>(0);
+  const [koraTotal, setKoraTotal] = useState<number>(0);
+  const [krantiTotal, setKrantiTotal] = useState<number>(0);
+  const [tilTotal, setTilTotal] = useState<number>(0);
 
   const [owners, setOwners] = useState<Owner[]>([
     {
@@ -124,12 +130,26 @@ export function DynamicOwner() {
     setShowResult(false);
   };
 
+  console.log('owners: ', owners);
   // Owner land change handler
   const handleOwnerLandChange = (
     ownerId: string,
     field: keyof LandAmount,
     value: string,
   ) => {
+    // Update the totals based on the field
+    if (field === 'ana') {
+      setAnaTotal(Number(value));
+    } else if (field === 'gonda') {
+      setGondaTotal(Number(value));
+    } else if (field === 'kora') {
+      setKoraTotal(Number(value));
+    } else if (field === 'kranti') {
+      setKrantiTotal(Number(value));
+    } else if (field === 'til') {
+      setTilTotal(Number(value));
+    }
+
     setOwners((prev) =>
       prev.map((owner) => {
         if (owner.id === ownerId) {
@@ -305,6 +325,28 @@ export function DynamicOwner() {
     0,
   );
 
+  // Add this function inside your component (before the return statement)
+  const calculateFieldTotals = () => {
+    let anaSum = 0;
+    let gondaSum = 0;
+    let koraSum = 0;
+    let krantiSum = 0;
+    let tilSum = 0;
+
+    owners.forEach((owner) => {
+      anaSum += owner.landAmount?.ana || 0;
+      gondaSum += owner.landAmount?.gonda || 0;
+      koraSum += owner.landAmount?.kora || 0;
+      krantiSum += owner.landAmount?.kranti || 0;
+      tilSum += owner.landAmount?.til || 0;
+    });
+
+    return { anaSum, gondaSum, koraSum, krantiSum, tilSum };
+  };
+
+  // Then call it in your component
+  const totals = calculateFieldTotals();
+
   return (
     <Card className="w-full max-w-4xl mx-auto">
       <CardHeader>
@@ -365,7 +407,7 @@ export function DynamicOwner() {
                 <div key={owner.id} className="border rounded-lg p-3 bg-card">
                   <div className="flex items-start gap-3">
                     <div className="flex-1 space-y-2">
-                      <div className="flex items-center gap-2">
+                      <div className="flex items-center gap-2 text-2xl">
                         <Input
                           value={owner.name}
                           onChange={(e) =>
@@ -387,9 +429,6 @@ export function DynamicOwner() {
 
                       {/* Land Amount Input (আনা-গন্ডা with symbols) */}
                       <div className="mt-2">
-                        <Label className="text-lg font-medium mb-4 block">
-                          {owner.name}-এর দলিল অনুযায়ী জমি (প্রতীক সহ)
-                        </Label>
                         <div className="grid grid-cols-2 md:grid-cols-5 gap-2">
                           {/* আনা সিলেক্ট with symbols */}
                           <div className="flex justify-center items-center gap-2">
@@ -564,6 +603,7 @@ export function DynamicOwner() {
                 </div>
               ))}
             </div>
+
             <div className="flex items-center justify-between">
               <h3 className="text-lg font-semibold">
                 মালিকগণ ({owners.length} জন)
@@ -578,6 +618,14 @@ export function DynamicOwner() {
                 নতুন মালিক যোগ করুন
               </Button>
             </div>
+          </div>
+
+          <div className="flex justify-evenly gap-2">
+            <p>আনা = {totals.anaSum} </p>
+            <p>গন্ডা = {totals.gondaSum}</p>
+            <p>করা = {totals.koraSum}</p>
+            <p>ক্রান্তি = {totals.krantiSum}</p>
+            <p>তিল = {totals.tilSum}</p>
           </div>
 
           {/* Action Buttons */}
