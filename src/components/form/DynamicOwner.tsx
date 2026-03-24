@@ -2,13 +2,7 @@
 'use client';
 
 import { Button } from '@/components/ui/button';
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import {
@@ -93,11 +87,6 @@ export function DynamicOwner() {
   const [totalDecimal, setTotalDecimal] = useState<number>(150); // মোট জমি দশমিকে (ডিফল্ট ১৫০)
   const [totalLandInGonda, setTotalLandInGonda] = useState<number>(0); // মোট জমি গন্ডায়
   const [totalLandInTil, setTotalLandInTil] = useState<number>(0); // মোট জমি তিলে
-  const [anaTotal, setAnaTotal] = useState<number>(0);
-  const [gondaTotal, setGondaTotal] = useState<number>(0);
-  const [koraTotal, setKoraTotal] = useState<number>(0);
-  const [krantiTotal, setKrantiTotal] = useState<number>(0);
-  const [tilTotal, setTilTotal] = useState<number>(0);
 
   const [owners, setOwners] = useState<Owner[]>([
     {
@@ -111,6 +100,67 @@ export function DynamicOwner() {
   ]);
 
   const [showResult, setShowResult] = useState<boolean>(false);
+
+  // Conversion functions
+  const convertToTil = (land: LandAmount): number => {
+    return (
+      land.ana *
+        GONDA_PER_ANA *
+        KORA_PER_GONDA *
+        KRANTI_PER_KORA *
+        TIL_PER_KRANTI +
+      land.gonda * KORA_PER_GONDA * KRANTI_PER_KORA * TIL_PER_KRANTI +
+      land.kora * KRANTI_PER_KORA * TIL_PER_KRANTI +
+      land.kranti * TIL_PER_KRANTI +
+      land.til
+    );
+  };
+
+  const convertFromTil = (totalTil: number): LandAmount => {
+    let remaining = totalTil;
+
+    const ana = Math.floor(
+      remaining /
+        (GONDA_PER_ANA * KORA_PER_GONDA * KRANTI_PER_KORA * TIL_PER_KRANTI),
+    );
+    remaining =
+      remaining %
+      (GONDA_PER_ANA * KORA_PER_GONDA * KRANTI_PER_KORA * TIL_PER_KRANTI);
+
+    const gonda = Math.floor(
+      remaining / (KORA_PER_GONDA * KRANTI_PER_KORA * TIL_PER_KRANTI),
+    );
+    remaining = remaining % (KORA_PER_GONDA * KRANTI_PER_KORA * TIL_PER_KRANTI);
+
+    const kora = Math.floor(remaining / (KRANTI_PER_KORA * TIL_PER_KRANTI));
+    remaining = remaining % (KRANTI_PER_KORA * TIL_PER_KRANTI);
+
+    const kranti = Math.floor(remaining / TIL_PER_KRANTI);
+    const til = remaining % TIL_PER_KRANTI;
+
+    return { ana, gonda, kora, kranti, til };
+  };
+
+  // Calculate totals from all owners with normalization
+  const calculateFieldTotals = () => {
+    let totalTilSum = 0;
+
+    owners.forEach((owner) => {
+      totalTilSum += convertToTil(owner.landAmount);
+    });
+
+    const normalizedTotals = convertFromTil(totalTilSum);
+
+    return {
+      anaSum: normalizedTotals.ana,
+      gondaSum: normalizedTotals.gonda,
+      koraSum: normalizedTotals.kora,
+      krantiSum: normalizedTotals.kranti,
+      tilSum: normalizedTotals.til,
+    };
+  };
+
+  const totals = calculateFieldTotals();
 
   // মোট দশমিক জমি পরিবর্তন
   const handleTotalDecimalChange = (value: string) => {
@@ -130,25 +180,14 @@ export function DynamicOwner() {
     setShowResult(false);
   };
 
-  console.log('owners: ', owners);
-  // Owner land change handler
+  // Handle owner land change with auto-normalization
   const handleOwnerLandChange = (
     ownerId: string,
     field: keyof LandAmount,
     value: string,
   ) => {
-    // Update the totals based on the field
-    if (field === 'ana') {
-      setAnaTotal(Number(value));
-    } else if (field === 'gonda') {
-      setGondaTotal(Number(value));
-    } else if (field === 'kora') {
-      setKoraTotal(Number(value));
-    } else if (field === 'kranti') {
-      setKrantiTotal(Number(value));
-    } else if (field === 'til') {
-      setTilTotal(Number(value));
-    }
+    const numericValue = parseInt(value, 10);
+    const newValue = isNaN(numericValue) ? 0 : numericValue;
 
     setOwners((prev) =>
       prev.map((owner) => {
@@ -159,12 +198,16 @@ export function DynamicOwner() {
             kora: owner.landAmount?.kora || 0,
             kranti: owner.landAmount?.kranti || 0,
             til: owner.landAmount?.til || 0,
-            [field]: parseInt(value) || 0,
+            [field]: newValue,
           };
+
+          // Convert to til and back to normalize
+          const totalTil = convertToTil(updatedLandAmount);
+          const normalized = convertFromTil(totalTil);
 
           return {
             ...owner,
-            landAmount: updatedLandAmount,
+            landAmount: normalized,
           };
         }
         return owner;
@@ -325,39 +368,13 @@ export function DynamicOwner() {
     0,
   );
 
-  // Add this function inside your component (before the return statement)
-  const calculateFieldTotals = () => {
-    let anaSum = 0;
-    let gondaSum = 0;
-    let koraSum = 0;
-    let krantiSum = 0;
-    let tilSum = 0;
-
-    owners.forEach((owner) => {
-      anaSum += owner.landAmount?.ana || 0;
-      gondaSum += owner.landAmount?.gonda || 0;
-      koraSum += owner.landAmount?.kora || 0;
-      krantiSum += owner.landAmount?.kranti || 0;
-      tilSum += owner.landAmount?.til || 0;
-    });
-
-    return { anaSum, gondaSum, koraSum, krantiSum, tilSum };
-  };
-
-  // Then call it in your component
-  const totals = calculateFieldTotals();
-
   return (
     <Card className="w-full max-w-4xl mx-auto">
       <CardHeader>
         <CardTitle className="text-2xl text-center flex items-center justify-center gap-2">
           <Users className="h-6 w-6" />
-          অংশীদারি জমি ক্যালকুলেটর
+          আনা গন্ডা যৌথ মালিকের তফসিল ক্যালকুলেটর
         </CardTitle>
-        <CardDescription className="text-center">
-          দলিলের আনা-গন্ডা (প্রতীক সহ) অনুযায়ী মোট জমি থেকে প্রতিটি মালিকের
-          শতাংশ ও অংশ নির্ণয় করুন
-        </CardDescription>
       </CardHeader>
       <CardContent>
         <div className="space-y-6">
@@ -377,25 +394,6 @@ export function DynamicOwner() {
                   placeholder="যেমন: ১৫০"
                   className="w-full"
                 />
-                <p className="text-xs text-muted-foreground">
-                  উদাহরণ: পিতার মোট জমি ১৫০ দশমিক
-                </p>
-              </div>
-              <div className="space-y-2">
-                <Label>মোট জমি (আনা-গন্ডায়)</Label>
-                <div className="p-2 bg-background rounded-md border">
-                  {totalLandInGonda > 0 ? (
-                    <span className="font-medium">
-                      {Math.floor(totalLandInGonda / GONDA_PER_ANA)} আনা (
-                      {anaSymbols[Math.floor(totalLandInGonda / GONDA_PER_ANA)]}
-                      ) {Math.floor(totalLandInGonda % GONDA_PER_ANA)} গন্ডা
-                    </span>
-                  ) : (
-                    <span className="text-muted-foreground">
-                      আনা-গন্ডায় দেখতে দশমিক দিন
-                    </span>
-                  )}
-                </div>
               </div>
             </div>
           </div>
