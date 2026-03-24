@@ -232,13 +232,13 @@ export function Form() {
           </div>
 
           {/* Selected Values Summary */}
-          <div className="bg-muted p-3 rounded-lg">
+          {/* <div className="bg-muted p-3 rounded-lg">
             <p className="text-sm font-medium">নির্বাচিত মান:</p>
             <p className="text-sm">
               {formValues.ana} আনা {formValues.gonda} গন্ডা {formValues.kora}{' '}
               কড়া {formValues.kranti} ক্রান্তি {formValues.til} তিল
             </p>
-          </div>
+          </div> */}
 
           {/* Action Buttons */}
           <div className="flex justify-between gap-3 mb-5">

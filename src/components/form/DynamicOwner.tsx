@@ -360,21 +360,6 @@ export function DynamicOwner() {
 
           {/* Owners Section */}
           <div className="space-y-4">
-            <div className="flex items-center justify-between">
-              <h3 className="text-lg font-semibold">
-                মালিকগণ ({owners.length} জন)
-              </h3>
-              <Button
-                onClick={addOwner}
-                variant="outline"
-                size="sm"
-                className="cursor-pointer bg-gray-600 hover:bg-green-600 text-white"
-              >
-                <PlusCircle className="h-4 w-4 mr-2" />
-                নতুন মালিক যোগ করুন
-              </Button>
-            </div>
-
             <div className="space-y-3 max-h-96 overflow-y-auto pr-2">
               {owners.map((owner, index) => (
                 <div key={owner.id} className="border rounded-lg p-3 bg-card">
@@ -576,41 +561,22 @@ export function DynamicOwner() {
                   </div>
 
                   {/* Show result for this owner if calculated */}
-                  {showResult && (
-                    <div className="mt-3 grid grid-cols-1 md:grid-cols-3 gap-3">
-                      {/* Share Value (অংশ) - এখন দশমিক আকারে দেখাবে ৬ দশমিক পর্যন্ত */}
-                      <div className="p-2 bg-purple-50 dark:bg-purple-900/20 rounded-md">
-                        <div className="text-xs text-muted-foreground">
-                          অংশ (১ এর মধ্যে)
-                        </div>
-                        <div className="text-lg font-semibold text-purple-600 dark:text-purple-400">
-                          {owner.shareValue.toFixed(6)}
-                        </div>
-                      </div>
-
-                      {/* Percentage (শতাংশ) */}
-                      <div className="p-2 bg-blue-50 dark:bg-blue-900/20 rounded-md">
-                        <div className="text-xs text-muted-foreground">
-                          শতাংশ
-                        </div>
-                        <div className="text-lg font-semibold text-blue-600 dark:text-blue-400">
-                          {owner.percentage.toFixed(4)}%
-                        </div>
-                      </div>
-
-                      {/* Decimal Value (দশমিক) */}
-                      <div className="p-2 bg-green-50 dark:bg-green-900/20 rounded-md">
-                        <div className="text-xs text-muted-foreground">
-                          দশমিকে জমি
-                        </div>
-                        <div className="text-lg font-semibold text-green-600 dark:text-green-400">
-                          {owner.decimalValue.toFixed(3)} দশমিক
-                        </div>
-                      </div>
-                    </div>
-                  )}
                 </div>
               ))}
+            </div>
+            <div className="flex items-center justify-between">
+              <h3 className="text-lg font-semibold">
+                মালিকগণ ({owners.length} জন)
+              </h3>
+              <Button
+                onClick={addOwner}
+                variant="outline"
+                size="sm"
+                className="cursor-pointer bg-gray-600 hover:bg-green-600 text-white"
+              >
+                <PlusCircle className="h-4 w-4 mr-2" />
+                নতুন মালিক যোগ করুন
+              </Button>
             </div>
           </div>
 
