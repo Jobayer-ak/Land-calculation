@@ -12,7 +12,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { Calculator, MinusCircle, PlusCircle, Users } from 'lucide-react';
+import { Calculator, MinusCircle, PlusCircle } from 'lucide-react';
 import { useState } from 'react';
 
 // Conversion factors
@@ -84,9 +84,10 @@ interface Owner {
 }
 
 export function DynamicOwner() {
-  const [totalDecimal, setTotalDecimal] = useState<number>(150); // মোট জমি দশমিকে (ডিফল্ট ১৫০)
+  const [totalDecimal, setTotalDecimal] = useState<number>(0); // মোট জমি দশমিকে (ডিফল্ট ০)
   const [totalLandInGonda, setTotalLandInGonda] = useState<number>(0); // মোট জমি গন্ডায়
   const [totalLandInTil, setTotalLandInTil] = useState<number>(0); // মোট জমি তিলে
+  const [totalDecimalError, setTotalDecimalError] = useState<boolean>(false); // Error state for total decimal field
 
   const [owners, setOwners] = useState<Owner[]>([
     {
@@ -166,6 +167,11 @@ export function DynamicOwner() {
   const handleTotalDecimalChange = (value: string) => {
     const newTotal = parseFloat(value) || 0;
     setTotalDecimal(newTotal);
+
+    // Clear error when user starts typing
+    if (totalDecimalError) {
+      setTotalDecimalError(false);
+    }
 
     // দশমিক থেকে গন্ডা ও তিলে রূপান্তর
     const totalSqft = newTotal * SQFT_PER_DECIMAL;
@@ -256,8 +262,9 @@ export function DynamicOwner() {
 
   // Calculate distribution
   const calculateDistribution = () => {
+    // Check if total decimal is valid
     if (totalDecimal <= 0) {
-      alert('দয়া করে মোট জমির পরিমাণ দশমিকে দিন');
+      setTotalDecimalError(true);
       return;
     }
 
@@ -330,13 +337,15 @@ export function DynamicOwner() {
 
     setOwners(updatedOwners);
     setShowResult(true);
+    setTotalDecimalError(false);
   };
 
   // Reset calculator
   const resetCalculator = () => {
-    setTotalDecimal(150);
+    setTotalDecimal(0);
     setTotalLandInGonda(0);
     setTotalLandInTil(0);
+    setTotalDecimalError(false);
     setOwners([
       {
         id: crypto.randomUUID ? crypto.randomUUID() : `owner-${Date.now()}-1`,
@@ -369,52 +378,41 @@ export function DynamicOwner() {
   );
 
   return (
-    <Card className="w-full max-w-4xl mx-auto">
+    <Card className="w-full">
       <CardHeader>
-        <CardTitle className="text-2xl text-center flex items-center justify-center gap-2">
-          <Users className="h-6 w-6" />
+        <CardTitle className="text-2xl text-orange-400 text-center flex items-center justify-center gap-2">
+          {/* <Users className="h-6 w-6" /> */}
           আনা গন্ডা যৌথ মালিকের তফসিল ক্যালকুলেটর
         </CardTitle>
       </CardHeader>
       <CardContent>
         <div className="space-y-6">
-          {/* Total Land Section */}
-
           {/* Owners Section */}
           <div className="space-y-4">
             <div className="space-y-3 max-h-96 overflow-y-auto pr-2">
               {owners.map((owner, index) => (
                 <div key={owner.id} className="border rounded-lg p-3 bg-card">
-                  <div className="flex items-start gap-3">
-                    <div className="flex-1 space-y-2">
-                      <div className="flex items-center gap-2 text-2xl">
-                        <Input
-                          value={owner.name}
-                          onChange={(e) =>
-                            handleOwnerNameChange(owner.id, e.target.value)
-                          }
-                          className="flex-1"
-                          placeholder="মালিকের নাম"
-                        />
-                        <Button
-                          onClick={() => removeOwner(owner.id)}
-                          variant="ghost"
-                          size="icon"
-                          className=" cursor-pointer bg-gray-600 hover:bg-red-500 text-white"
-                          disabled={owners.length <= 1}
-                        >
-                          <MinusCircle className="h-6 w-6" />
-                        </Button>
-                      </div>
-
+                  <div className=" gap-3">
+                    <div className="space-y-2">
                       {/* Land Amount Input (আনা-গন্ডা with symbols) */}
                       <div className="mt-2">
-                        <div className="grid grid-cols-2 md:grid-cols-5 gap-2">
+                        <div className="flex justify-between gap-2">
                           {/* আনা সিলেক্ট with symbols */}
+                          <div className="flex items-center gap-2 text-2xl">
+                            <Input
+                              value={owner.name}
+                              onChange={(e) =>
+                                handleOwnerNameChange(owner.id, e.target.value)
+                              }
+                              size="sm"
+                              className="w-30 text-gray-500 font-semibold" // Fixed width
+                              placeholder="মালিকের নাম"
+                            />
+                          </div>
                           <div className="flex justify-center items-center gap-2">
                             <Label
                               htmlFor={`owner-${owner.id}-ana`}
-                              className="text-lg font-semibold"
+                              className="text-md font-semibold"
                             >
                               আনা
                             </Label>
@@ -447,7 +445,7 @@ export function DynamicOwner() {
                           <div className="flex justify-center items-center gap-2">
                             <Label
                               htmlFor={`owner-${owner.id}-gonda`}
-                              className="text-lg font-semibold"
+                              className="text-md font-semibold"
                             >
                               গন্ডা
                             </Label>
@@ -480,7 +478,7 @@ export function DynamicOwner() {
                           <div className="flex justify-center items-center gap-2">
                             <Label
                               htmlFor={`owner-${owner.id}-kora`}
-                              className="text-lg font-semibold"
+                              className="text-md font-semibold"
                             >
                               কড়া
                             </Label>
@@ -513,7 +511,7 @@ export function DynamicOwner() {
                           <div className="flex justify-center items-center gap-2">
                             <Label
                               htmlFor={`owner-${owner.id}-kranti`}
-                              className="text-lg font-semibold"
+                              className="text-md font-semibold"
                             >
                               ক্রান্তি
                             </Label>
@@ -546,7 +544,7 @@ export function DynamicOwner() {
                           <div className="flex justify-center items-center gap-2">
                             <Label
                               htmlFor={`owner-${owner.id}-til`}
-                              className="text-lg font-semibold"
+                              className="text-md font-semibold"
                             >
                               তিল
                             </Label>
@@ -574,6 +572,16 @@ export function DynamicOwner() {
                               </SelectContent>
                             </Select>
                           </div>
+
+                          <Button
+                            onClick={() => removeOwner(owner.id)}
+                            variant="ghost"
+                            size="icon"
+                            className=" cursor-pointer bg-gray-600 hover:bg-red-500 text-white"
+                            disabled={owners.length <= 1}
+                          >
+                            <MinusCircle className="h-6 w-6" />
+                          </Button>
                         </div>
                       </div>
                     </div>
@@ -609,29 +617,36 @@ export function DynamicOwner() {
           </div>
 
           {/* Action Buttons */}
-          <div className="flex justify-between gap-0 px-4 pt-4">
-            <div className="flex justify-between items-center gap-4">
-              <Label
-                htmlFor="total-decimal"
-                className="text-xl whitespace-nowrap font-bold text-red-600"
-              >
-                মোট জমি:
-              </Label>
-              <Input
-                id="total-decimal"
-                type="number"
-                step="0.01"
-                min="0"
-                value={totalDecimal}
-                onChange={(e) => handleTotalDecimalChange(e.target.value)}
-                placeholder="100"
-                className="w-32"
-              />
+          <div className="flex justify-between gap-0 px-4 py-4 bg-gray-100 rounded">
+            <div className="flex flex-col gap-1">
+              <div className="flex justify-between items-center gap-4">
+                <Label
+                  htmlFor="total-decimal"
+                  className="text-xl whitespace-nowrap font-bold text-amber-600"
+                >
+                  মোট জমি: <span className="text-red-500">*</span>
+                </Label>
+                <Input
+                  id="total-decimal"
+                  type="number"
+                  step="0.01"
+                  min="0"
+                  value={totalDecimal || ''}
+                  onChange={(e) => handleTotalDecimalChange(e.target.value)}
+                  // placeholder="যেমন: ১৫০"
+                  className={`w-32 bg-white ${totalDecimalError ? 'border-red-500 focus:ring-red-500' : ''}`}
+                />
+              </div>
+              {totalDecimalError && (
+                <p className="text-red-500 text-sm mt-1 ml-20">
+                  * মোট জমির পরিমাণ প্রয়োজন
+                </p>
+              )}
             </div>
             <div className="flex items-center gap-4">
               <Button
                 onClick={calculateDistribution}
-                className="text-lg bg-amber-600 text-black font-bold cursor-pointer hover:text-white"
+                className="text-lg bg-amber-300 text-black font-bold cursor-pointer hover:text-white"
                 size="lg"
               >
                 <Calculator className="h-4 w-4 mr-2" />
