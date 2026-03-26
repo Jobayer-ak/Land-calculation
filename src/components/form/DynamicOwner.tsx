@@ -81,6 +81,7 @@ interface Owner {
   shareValue: number; // অংশের মান (১ এর মধ্যে কত অংশ) - দশমিক আকারে
   percentage: number; // শতাংশ
   decimalValue: number; // দশমিকে জমির পরিমাণ
+  linkedTo: string | null; // ID of the owner this owner is linked to
 }
 
 export function DynamicOwner() {
@@ -97,6 +98,7 @@ export function DynamicOwner() {
       shareValue: 0,
       percentage: 0,
       decimalValue: 0,
+      linkedTo: null,
     },
   ]);
 
@@ -211,14 +213,76 @@ export function DynamicOwner() {
           const totalTil = convertToTil(updatedLandAmount);
           const normalized = convertFromTil(totalTil);
 
-          return {
+          const updatedOwner = {
             ...owner,
             landAmount: normalized,
           };
+
+          // If this owner is linked to others, update all linked owners
+          return updatedOwner;
         }
         return owner;
       }),
     );
+
+    // Update all owners that are linked to this owner
+    setOwners((prev) => {
+      const updatedOwners = [...prev];
+      const sourceOwner = updatedOwners.find((o) => o.id === ownerId);
+
+      if (sourceOwner) {
+        // Find all owners that are linked to this owner (including those that link to this one)
+        const linkedOwnerIds = updatedOwners
+          .filter((o) => o.linkedTo === ownerId)
+          .map((o) => o.id);
+
+        // Update all linked owners with the same land amount
+        linkedOwnerIds.forEach((linkedId) => {
+          const index = updatedOwners.findIndex((o) => o.id === linkedId);
+          if (index !== -1) {
+            updatedOwners[index] = {
+              ...updatedOwners[index],
+              landAmount: { ...sourceOwner.landAmount },
+            };
+          }
+        });
+      }
+
+      return updatedOwners;
+    });
+
+    setShowResult(false);
+  };
+
+  // Handle linking owner to previous owner
+  const handleLinkOwner = (ownerId: string, previousOwnerId: string | null) => {
+    setOwners((prev) => {
+      const updatedOwners = [...prev];
+      const currentOwnerIndex = updatedOwners.findIndex(
+        (o) => o.id === ownerId,
+      );
+      const previousOwner = updatedOwners.find((o) => o.id === previousOwnerId);
+
+      if (currentOwnerIndex !== -1) {
+        if (previousOwnerId && previousOwner) {
+          // Link to previous owner and copy their land amount
+          updatedOwners[currentOwnerIndex] = {
+            ...updatedOwners[currentOwnerIndex],
+            linkedTo: previousOwnerId,
+            landAmount: { ...previousOwner.landAmount },
+          };
+        } else {
+          // Unlink
+          updatedOwners[currentOwnerIndex] = {
+            ...updatedOwners[currentOwnerIndex],
+            linkedTo: null,
+          };
+        }
+      }
+
+      return updatedOwners;
+    });
+
     setShowResult(false);
   };
 
@@ -243,6 +307,7 @@ export function DynamicOwner() {
       shareValue: 0,
       percentage: 0,
       decimalValue: 0,
+      linkedTo: null,
     };
 
     setOwners([...owners, newOwner]);
@@ -354,6 +419,7 @@ export function DynamicOwner() {
         shareValue: 0,
         percentage: 0,
         decimalValue: 0,
+        linkedTo: null,
       },
     ]);
     setShowResult(false);
@@ -377,230 +443,297 @@ export function DynamicOwner() {
     0,
   );
 
+  // Get available previous owners for linking
+  const getPreviousOwners = (currentOwnerId: string) => {
+    const currentIndex = owners.findIndex((o) => o.id === currentOwnerId);
+    return owners.slice(0, currentIndex);
+  };
+
   return (
-    <Card className="w-full">
+    <Card className="w-full bg-gray-100 border-none">
       <CardHeader>
-        <CardTitle className="text-2xl text-orange-400 text-center flex items-center justify-center gap-2">
-          {/* <Users className="h-6 w-6" /> */}
+        <CardTitle className="bg-gray-200 rounded p-4 text-2xl text-gray-600 text-center flex items-center justify-center gap-2">
           আনা গন্ডা যৌথ মালিকের তফসিল ক্যালকুলেটর
         </CardTitle>
       </CardHeader>
       <CardContent>
-        <div className="space-y-6">
+        <div className="space-y-0">
           {/* Owners Section */}
-          <div className="space-y-4">
+          <div className="space-y-2">
             <div className="space-y-3 max-h-96 overflow-y-auto pr-2">
-              {owners.map((owner, index) => (
-                <div key={owner.id} className="border rounded-lg p-3 bg-card">
-                  <div className=" gap-3">
-                    <div className="space-y-2">
-                      {/* Land Amount Input (আনা-গন্ডা with symbols) */}
-                      <div className="mt-2">
-                        <div className="flex justify-between gap-2">
-                          {/* আনা সিলেক্ট with symbols */}
-                          <div className="flex items-center gap-2 text-2xl">
-                            <Input
-                              value={owner.name}
-                              onChange={(e) =>
-                                handleOwnerNameChange(owner.id, e.target.value)
-                              }
-                              size="sm"
-                              className="w-30 text-gray-500 font-semibold" // Fixed width
-                              placeholder="মালিকের নাম"
-                            />
-                          </div>
-                          <div className="flex justify-center items-center gap-2">
-                            <Label
-                              htmlFor={`owner-${owner.id}-ana`}
-                              className="text-md font-semibold"
-                            >
-                              আনা
-                            </Label>
-                            <Select
-                              value={owner.landAmount?.ana.toString() || '0'}
-                              onValueChange={(value) =>
-                                handleOwnerLandChange(owner.id, 'ana', value)
-                              }
-                            >
-                              <SelectTrigger
-                                id={`owner-${owner.id}-ana`}
-                                className="h-8"
-                              >
-                                <SelectValue placeholder="০" />
-                              </SelectTrigger>
-                              <SelectContent>
-                                {anaOptions.map((option) => (
-                                  <SelectItem
-                                    key={option}
-                                    value={option.toString()}
-                                  >
-                                    {option} = {anaSymbols[option]}
-                                  </SelectItem>
-                                ))}
-                              </SelectContent>
-                            </Select>
-                          </div>
+              {owners.map((owner, index) => {
+                const previousOwners = getPreviousOwners(owner.id);
+                const isLinked = owner.linkedTo !== null;
+                const linkedOwner = owners.find((o) => o.id === owner.linkedTo);
 
-                          {/* গন্ডা সিলেক্ট (numbers only) */}
-                          <div className="flex justify-center items-center gap-2">
-                            <Label
-                              htmlFor={`owner-${owner.id}-gonda`}
-                              className="text-md font-semibold"
-                            >
-                              গন্ডা
-                            </Label>
-                            <Select
-                              value={owner.landAmount?.gonda.toString() || '0'}
-                              onValueChange={(value) =>
-                                handleOwnerLandChange(owner.id, 'gonda', value)
-                              }
-                            >
-                              <SelectTrigger
-                                id={`owner-${owner.id}-gonda`}
-                                className="h-8"
-                              >
-                                <SelectValue placeholder="০" />
-                              </SelectTrigger>
-                              <SelectContent>
-                                {gondaOptions.map((option) => (
-                                  <SelectItem
-                                    key={option}
-                                    value={option.toString()}
-                                  >
-                                    {option}
-                                  </SelectItem>
-                                ))}
-                              </SelectContent>
-                            </Select>
-                          </div>
+                return (
+                  <div key={owner.id} className="border rounded p-3 bg-card">
+                    <div className="gap-3">
+                      <div className="space-y-0">
+                        {/* Land Amount Input (আনা-গন্ডা with symbols) */}
+                        <div className="mt-0">
+                          <div className="flex justify-between items-center gap-2 bg-yellow-100 px-3 py-2 rounded">
+                            {/* Owner Name and Link Option */}
+                            <div className="flex items-center gap-2">
+                              <Input
+                                value={owner.name}
+                                onChange={(e) =>
+                                  handleOwnerNameChange(
+                                    owner.id,
+                                    e.target.value,
+                                  )
+                                }
+                                size={25}
+                                className="w-22 text-gray-600 font-semibold"
+                                placeholder="মালিকের নাম"
+                                disabled={isLinked}
+                              />
 
-                          {/* কড়া সিলেক্ট with symbols */}
-                          <div className="flex justify-center items-center gap-2">
-                            <Label
-                              htmlFor={`owner-${owner.id}-kora`}
-                              className="text-md font-semibold"
-                            >
-                              কড়া
-                            </Label>
-                            <Select
-                              value={owner.landAmount?.kora.toString() || '0'}
-                              onValueChange={(value) =>
-                                handleOwnerLandChange(owner.id, 'kora', value)
-                              }
-                            >
-                              <SelectTrigger
-                                id={`owner-${owner.id}-kora`}
-                                className="h-8"
-                              >
-                                <SelectValue placeholder="০" />
-                              </SelectTrigger>
-                              <SelectContent>
-                                {koraOptions.map((option) => (
-                                  <SelectItem
-                                    key={option}
-                                    value={option.toString()}
+                              {/* Link Checkbox for owners that have previous owners */}
+                              {previousOwners.length > 0 && (
+                                <div className="flex text-end items-center gap-1 bg-gray-100 px-2 py-1 rounded">
+                                  <input
+                                    type="checkbox"
+                                    id={`link-${owner.id}`}
+                                    checked={isLinked}
+                                    onChange={(e) => {
+                                      if (
+                                        e.target.checked &&
+                                        previousOwners.length > 0
+                                      ) {
+                                        // When checking, link to the most recent previous owner by default
+                                        const lastOwner =
+                                          previousOwners[
+                                            previousOwners.length - 1
+                                          ];
+                                        handleLinkOwner(owner.id, lastOwner.id);
+                                      } else {
+                                        // Unlink
+                                        handleLinkOwner(owner.id, null);
+                                      }
+                                    }}
+                                    className="cursor-pointer"
+                                  />
+                                  <Label
+                                    htmlFor={`link-${owner.id}`}
+                                    className="text-sm cursor-pointer flex items-center gap-1"
                                   >
-                                    {option} = {koraSymbols[option]}
-                                  </SelectItem>
-                                ))}
-                              </SelectContent>
-                            </Select>
-                          </div>
+                                    {isLinked
+                                      ? `${linkedOwner?.name} এর সমান অংশ`
+                                      : ` আগের মালিকের সমান`}
+                                  </Label>
+                                </div>
+                              )}
+                            </div>
 
-                          {/* ক্রান্তি সিলেক্ট with symbols */}
-                          <div className="flex justify-center items-center gap-2">
-                            <Label
-                              htmlFor={`owner-${owner.id}-kranti`}
-                              className="text-md font-semibold"
-                            >
-                              ক্রান্তি
-                            </Label>
-                            <Select
-                              value={owner.landAmount?.kranti.toString() || '0'}
-                              onValueChange={(value) =>
-                                handleOwnerLandChange(owner.id, 'kranti', value)
-                              }
-                            >
-                              <SelectTrigger
-                                id={`owner-${owner.id}-kranti`}
-                                className="h-8"
+                            {/* আনা সিলেক্ট with symbols */}
+                            <div className="flex justify-center items-center gap-2">
+                              <Label
+                                htmlFor={`owner-${owner.id}-ana`}
+                                className="text-md font-semibold"
                               >
-                                <SelectValue placeholder="০" />
-                              </SelectTrigger>
-                              <SelectContent>
-                                {krantiOptions.map((option) => (
-                                  <SelectItem
-                                    key={option}
-                                    value={option.toString()}
-                                  >
-                                    {option} = {krantiSymbols[option]}
-                                  </SelectItem>
-                                ))}
-                              </SelectContent>
-                            </Select>
-                          </div>
-
-                          {/* তিল সিলেক্ট (numbers only) */}
-                          <div className="flex justify-center items-center gap-2">
-                            <Label
-                              htmlFor={`owner-${owner.id}-til`}
-                              className="text-md font-semibold"
-                            >
-                              তিল
-                            </Label>
-                            <Select
-                              value={owner.landAmount?.til.toString() || '0'}
-                              onValueChange={(value) =>
-                                handleOwnerLandChange(owner.id, 'til', value)
-                              }
-                            >
-                              <SelectTrigger
-                                id={`owner-${owner.id}-til`}
-                                className="h-8"
+                                আনা
+                              </Label>
+                              <Select
+                                value={owner.landAmount?.ana.toString() || '0'}
+                                onValueChange={(value) =>
+                                  handleOwnerLandChange(owner.id, 'ana', value)
+                                }
+                                disabled={isLinked}
                               >
-                                <SelectValue placeholder="০" />
-                              </SelectTrigger>
-                              <SelectContent>
-                                {tilOptions.map((option) => (
-                                  <SelectItem
-                                    key={option}
-                                    value={option.toString()}
-                                  >
-                                    {option}
-                                  </SelectItem>
-                                ))}
-                              </SelectContent>
-                            </Select>
-                          </div>
+                                <SelectTrigger
+                                  id={`owner-${owner.id}-ana`}
+                                  className="h-8"
+                                >
+                                  <SelectValue placeholder="০" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                  {anaOptions.map((option) => (
+                                    <SelectItem
+                                      key={option}
+                                      value={option.toString()}
+                                    >
+                                      {option} = {anaSymbols[option]}
+                                    </SelectItem>
+                                  ))}
+                                </SelectContent>
+                              </Select>
+                            </div>
 
-                          <Button
-                            onClick={() => removeOwner(owner.id)}
-                            variant="ghost"
-                            size="icon"
-                            className=" cursor-pointer bg-gray-600 hover:bg-red-500 text-white"
-                            disabled={owners.length <= 1}
-                          >
-                            <MinusCircle className="h-6 w-6" />
-                          </Button>
+                            {/* গন্ডা সিলেক্ট (numbers only) */}
+                            <div className="flex justify-center items-center gap-2">
+                              <Label
+                                htmlFor={`owner-${owner.id}-gonda`}
+                                className="text-md font-semibold"
+                              >
+                                গন্ডা
+                              </Label>
+                              <Select
+                                value={
+                                  owner.landAmount?.gonda.toString() || '0'
+                                }
+                                onValueChange={(value) =>
+                                  handleOwnerLandChange(
+                                    owner.id,
+                                    'gonda',
+                                    value,
+                                  )
+                                }
+                                disabled={isLinked}
+                              >
+                                <SelectTrigger
+                                  id={`owner-${owner.id}-gonda`}
+                                  className="h-8"
+                                >
+                                  <SelectValue placeholder="০" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                  {gondaOptions.map((option) => (
+                                    <SelectItem
+                                      key={option}
+                                      value={option.toString()}
+                                    >
+                                      {option}
+                                    </SelectItem>
+                                  ))}
+                                </SelectContent>
+                              </Select>
+                            </div>
+
+                            {/* কড়া সিলেক্ট with symbols */}
+                            <div className="flex justify-center items-center gap-2">
+                              <Label
+                                htmlFor={`owner-${owner.id}-kora`}
+                                className="text-md font-semibold"
+                              >
+                                কড়া
+                              </Label>
+                              <Select
+                                value={owner.landAmount?.kora.toString() || '0'}
+                                onValueChange={(value) =>
+                                  handleOwnerLandChange(owner.id, 'kora', value)
+                                }
+                                disabled={isLinked}
+                              >
+                                <SelectTrigger
+                                  id={`owner-${owner.id}-kora`}
+                                  className="h-8"
+                                >
+                                  <SelectValue placeholder="০" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                  {koraOptions.map((option) => (
+                                    <SelectItem
+                                      key={option}
+                                      value={option.toString()}
+                                    >
+                                      {option} = {koraSymbols[option]}
+                                    </SelectItem>
+                                  ))}
+                                </SelectContent>
+                              </Select>
+                            </div>
+
+                            {/* ক্রান্তি সিলেক্ট with symbols */}
+                            <div className="flex justify-center items-center gap-2">
+                              <Label
+                                htmlFor={`owner-${owner.id}-kranti`}
+                                className="text-md font-semibold"
+                              >
+                                ক্রান্তি
+                              </Label>
+                              <Select
+                                value={
+                                  owner.landAmount?.kranti.toString() || '0'
+                                }
+                                onValueChange={(value) =>
+                                  handleOwnerLandChange(
+                                    owner.id,
+                                    'kranti',
+                                    value,
+                                  )
+                                }
+                                disabled={isLinked}
+                              >
+                                <SelectTrigger
+                                  id={`owner-${owner.id}-kranti`}
+                                  className="h-8"
+                                >
+                                  <SelectValue placeholder="০" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                  {krantiOptions.map((option) => (
+                                    <SelectItem
+                                      key={option}
+                                      value={option.toString()}
+                                    >
+                                      {option} = {krantiSymbols[option]}
+                                    </SelectItem>
+                                  ))}
+                                </SelectContent>
+                              </Select>
+                            </div>
+
+                            {/* তিল সিলেক্ট (numbers only) */}
+                            <div className="flex justify-center items-center gap-2">
+                              <Label
+                                htmlFor={`owner-${owner.id}-til`}
+                                className="text-md font-semibold"
+                              >
+                                তিল
+                              </Label>
+                              <Select
+                                value={owner.landAmount?.til.toString() || '0'}
+                                onValueChange={(value) =>
+                                  handleOwnerLandChange(owner.id, 'til', value)
+                                }
+                                disabled={isLinked}
+                              >
+                                <SelectTrigger
+                                  id={`owner-${owner.id}-til`}
+                                  className="h-8"
+                                >
+                                  <SelectValue placeholder="০" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                  {tilOptions.map((option) => (
+                                    <SelectItem
+                                      key={option}
+                                      value={option.toString()}
+                                    >
+                                      {option}
+                                    </SelectItem>
+                                  ))}
+                                </SelectContent>
+                              </Select>
+                            </div>
+
+                            <Button
+                              onClick={() => removeOwner(owner.id)}
+                              variant="ghost"
+                              size="icon"
+                              className="cursor-pointer rounded bg-red-500 hover:bg-red-800 text-white"
+                              disabled={owners.length <= 1}
+                            >
+                              <MinusCircle className="h-6 w-6 text-white" />
+                            </Button>
+                          </div>
                         </div>
                       </div>
                     </div>
                   </div>
-
-                  {/* Show result for this owner if calculated */}
-                </div>
-              ))}
+                );
+              })}
             </div>
 
-            <div className="flex items-center justify-between">
+            <div className="flex items-center justify-between bg-white px-4 py-3 rounded">
               <h3 className="text-lg font-semibold">
                 মালিকগণ ({owners.length} জন)
               </h3>
               <Button
                 onClick={addOwner}
-                variant="outline"
-                size="sm"
-                className="cursor-pointer bg-gray-600 hover:bg-green-600 text-white"
+                className="text-lg bg-gray-600 text-white font-semibold rounded cursor-pointer hover:bg-gray-900"
+                size="lg"
               >
                 <PlusCircle className="h-4 w-4 mr-2" />
                 নতুন মালিক যোগ করুন
@@ -608,7 +741,7 @@ export function DynamicOwner() {
             </div>
           </div>
 
-          <div className="flex justify-evenly gap-2">
+          <div className="flex justify-evenly gap-2 bg-white my-2 p-2 rounded">
             <p>আনা = {totals.anaSum} </p>
             <p>গন্ডা = {totals.gondaSum}</p>
             <p>করা = {totals.koraSum}</p>
@@ -617,7 +750,7 @@ export function DynamicOwner() {
           </div>
 
           {/* Action Buttons */}
-          <div className="flex justify-between gap-0 px-4 py-4 bg-gray-100 rounded">
+          <div className="flex justify-between gap-0 px-4 py-2 bg-white rounded">
             <div className="flex flex-col gap-1">
               <div className="flex justify-between items-center gap-4">
                 <Label
@@ -633,8 +766,7 @@ export function DynamicOwner() {
                   min="0"
                   value={totalDecimal || ''}
                   onChange={(e) => handleTotalDecimalChange(e.target.value)}
-                  // placeholder="যেমন: ১৫০"
-                  className={`w-32 bg-white ${totalDecimalError ? 'border-red-500 focus:ring-red-500' : ''}`}
+                  className={`w-32 rounded bg-gray-100 ${totalDecimalError ? 'border-red-500 focus:ring-red-500' : ''}`}
                 />
               </div>
               {totalDecimalError && (
@@ -646,7 +778,7 @@ export function DynamicOwner() {
             <div className="flex items-center gap-4">
               <Button
                 onClick={calculateDistribution}
-                className="text-lg bg-amber-300 text-black font-bold cursor-pointer hover:text-white"
+                className="text-lg rounded bg-amber-300 text-black font-bold cursor-pointer hover:text-white"
                 size="lg"
               >
                 <Calculator className="h-4 w-4 mr-2" />
@@ -655,7 +787,7 @@ export function DynamicOwner() {
               <Button
                 onClick={resetCalculator}
                 variant="outline"
-                className=" text-lg font-bold text-black cursor-pointer bg-green-400 hover:bg-red-600 hover:text-white "
+                className="text-lg rounded font-semibold text-black cursor-pointer bg-red-400 hover:bg-red-600 hover:text-white"
                 size="lg"
               >
                 রিসেট করুন
@@ -665,30 +797,26 @@ export function DynamicOwner() {
 
           {/* Summary Result */}
           {showResult && (
-            <div className="mt-4 p-4 bg-primary/10 rounded-lg border border-primary/20">
-              <h4 className="font-semibold text-xl bg-amber-600 py-4 text-primary mb-4 flex justify-center">
+            <div className="mt-4 p-4 bg-yellow-100 rounded border border-gray-300">
+              <h4 className="font-semibold rounded text-xl bg-gray-400 py-4 text-primary mb-4 flex justify-center">
                 হিস্যার ফলাফল (সারসংক্ষেপ):
               </h4>
               <div className="space-y-3">
-                <div className="text-lg grid grid-cols-3 gap-2 font-semibold border-b border-green-500 pb-2">
+                <div className="text-lg grid grid-cols-3 gap-2 font-semibold border-b border-gray-300 pb-2">
                   <div>মালিকের নাম</div>
                   <div>অংশ (১ এর মধ্যে)</div>
-                  {/* <div>শতাংশ</div> */}
-                  <div>খতিয়ানে মালিকের জমির পরিমাণ </div>
+                  <div>খতিয়ানে মালিকের জমির পরিমাণ</div>
                 </div>
                 {owners.map((owner) => (
                   <div
                     key={owner.id}
-                    className="grid grid-cols-3 gap-2 text-sm border-b border-green-500 last:border-0 pb-2 last:pb-0"
+                    className="grid grid-cols-3 gap-2 text-sm border-b border-gray-300 last:border-0 pb-2 last:pb-0"
                   >
-                    <div className="font-bold text-lg ">{owner.name}</div>
+                    <div className="font-bold text-lg">{owner.name}</div>
                     <div className="text-lg text-red-600 font-bold dark:text-purple-400">
                       {owner.shareValue.toFixed(6)}
                     </div>
-                    {/* <div className="text-blue-600 dark:text-blue-400">
-                      {owner.percentage.toFixed(4)}%
-                    </div> */}
-                    <div className="text-lg text-purple-600 font-bold  dark:text-green-400">
+                    <div className="text-lg text-purple-600 font-bold dark:text-green-400">
                       {owner.decimalValue.toFixed(3)} শতক
                     </div>
                   </div>
@@ -700,7 +828,6 @@ export function DynamicOwner() {
                   <div className="text-purple-600 dark:text-purple-400">
                     {totalShareSum.toFixed(6)}
                   </div>
-                  {/* <div className="text-blue-600 dark:text-blue-400">১০০%</div> */}
                   <div className="text-green-600 dark:text-green-400">
                     {totalDecimal.toFixed(2)} দশমিক
                   </div>
@@ -716,7 +843,7 @@ export function DynamicOwner() {
           )}
 
           {/* Info Section */}
-          <div className="mt-6 text-md border-t pt-4">
+          <div className="mt-6 bg-yellow-100 text-md border border-gray-300 p-4">
             <h4 className="font-semibold mb-2">প্রতীক নির্দেশিকা:</h4>
             <div className="grid grid-cols-2 md:grid-cols-4 gap-2 mb-3">
               <div className="text-lg">
