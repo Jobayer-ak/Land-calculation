@@ -450,28 +450,28 @@ export function DynamicOwner() {
   };
 
   return (
-    <Card className="w-full bg-gray-100 border-none">
-      <CardHeader>
-        <CardTitle className="bg-gray-200 rounded p-4 text-2xl text-gray-600 text-center flex items-center justify-center gap-2">
+    <Card className="w-full border-none px-0 py-2 rounded-sm">
+      <CardHeader className="py-0">
+        <CardTitle className="bg-gray-200 rounded border border-gray-300 py-2 text-2xl text-amber-900 text-center flex items-center justify-center gap-2">
           আনা গন্ডা যৌথ মালিকের তফসিল ক্যালকুলেটর
         </CardTitle>
       </CardHeader>
       <CardContent>
-        <div className="space-y-0">
+        <div>
           {/* Owners Section */}
-          <div className="space-y-2">
-            <div className="space-y-3 max-h-96 overflow-y-auto pr-2">
+          <div>
+            <div className="space-y-1 max-h-96 overflow-y-auto">
               {owners.map((owner, index) => {
                 const previousOwners = getPreviousOwners(owner.id);
                 const isLinked = owner.linkedTo !== null;
                 const linkedOwner = owners.find((o) => o.id === owner.linkedTo);
 
                 return (
-                  <div key={owner.id} className="border rounded p-3 bg-card">
+                  <div key={owner.id} className="border rounded p-2 bg-card">
                     <div className="gap-3">
                       <div className="space-y-0">
                         {/* Land Amount Input (আনা-গন্ডা with symbols) */}
-                        <div className="mt-0">
+                        <div className="">
                           <div className="flex justify-between items-center gap-2 bg-yellow-100 px-3 py-2 rounded">
                             {/* Owner Name and Link Option */}
                             <div className="flex items-center gap-2">
@@ -484,14 +484,14 @@ export function DynamicOwner() {
                                   )
                                 }
                                 size={25}
-                                className="w-22 text-gray-600 font-semibold"
+                                className="w-22 text-gray-800 bg-white focus-outline:none font-semibold"
                                 placeholder="মালিকের নাম"
                                 disabled={isLinked}
                               />
 
                               {/* Link Checkbox for owners that have previous owners */}
                               {previousOwners.length > 0 && (
-                                <div className="flex text-end items-center gap-1 bg-gray-100 px-2 py-1 rounded">
+                                <div className="flex items-center gap-2 text-end bg-gray-100 px-2 py-1 rounded">
                                   <input
                                     type="checkbox"
                                     id={`link-${owner.id}`}
@@ -512,7 +512,7 @@ export function DynamicOwner() {
                                         handleLinkOwner(owner.id, null);
                                       }
                                     }}
-                                    className="cursor-pointer"
+                                    className="rounded cursor-pointer"
                                   />
                                   <Label
                                     htmlFor={`link-${owner.id}`}
@@ -530,7 +530,7 @@ export function DynamicOwner() {
                             <div className="flex justify-center items-center gap-2">
                               <Label
                                 htmlFor={`owner-${owner.id}-ana`}
-                                className="text-md font-semibold"
+                                className="text-md text-gray-700 font-semibold"
                               >
                                 আনা
                               </Label>
@@ -543,7 +543,7 @@ export function DynamicOwner() {
                               >
                                 <SelectTrigger
                                   id={`owner-${owner.id}-ana`}
-                                  className="h-8"
+                                  className="h-8 w-20 rounded cursor-pointer"
                                 >
                                   <SelectValue placeholder="০" />
                                 </SelectTrigger>
@@ -564,7 +564,7 @@ export function DynamicOwner() {
                             <div className="flex justify-center items-center gap-2">
                               <Label
                                 htmlFor={`owner-${owner.id}-gonda`}
-                                className="text-md font-semibold"
+                                className="text-md text-gray-700 font-semibold"
                               >
                                 গন্ডা
                               </Label>
@@ -583,7 +583,7 @@ export function DynamicOwner() {
                               >
                                 <SelectTrigger
                                   id={`owner-${owner.id}-gonda`}
-                                  className="h-8"
+                                  className="h-8 w-20 rounded cursor-pointer"
                                 >
                                   <SelectValue placeholder="০" />
                                 </SelectTrigger>
@@ -604,7 +604,7 @@ export function DynamicOwner() {
                             <div className="flex justify-center items-center gap-2">
                               <Label
                                 htmlFor={`owner-${owner.id}-kora`}
-                                className="text-md font-semibold"
+                                className="text-md text-gray-700 font-semibold"
                               >
                                 কড়া
                               </Label>
@@ -617,7 +617,7 @@ export function DynamicOwner() {
                               >
                                 <SelectTrigger
                                   id={`owner-${owner.id}-kora`}
-                                  className="h-8"
+                                  className="h-8 w-20 rounded cursor-pointer"
                                 >
                                   <SelectValue placeholder="০" />
                                 </SelectTrigger>
@@ -638,7 +638,7 @@ export function DynamicOwner() {
                             <div className="flex justify-center items-center gap-2">
                               <Label
                                 htmlFor={`owner-${owner.id}-kranti`}
-                                className="text-md font-semibold"
+                                className="text-md text-gray-700 font-semibold"
                               >
                                 ক্রান্তি
                               </Label>
@@ -657,7 +657,7 @@ export function DynamicOwner() {
                               >
                                 <SelectTrigger
                                   id={`owner-${owner.id}-kranti`}
-                                  className="h-8"
+                                  className="h-8 w-20 rounded cursor-pointer"
                                 >
                                   <SelectValue placeholder="০" />
                                 </SelectTrigger>
@@ -678,7 +678,7 @@ export function DynamicOwner() {
                             <div className="flex justify-center items-center gap-2">
                               <Label
                                 htmlFor={`owner-${owner.id}-til`}
-                                className="text-md font-semibold"
+                                className="text-md text-gray-700 font-semibold"
                               >
                                 তিল
                               </Label>
@@ -691,7 +691,7 @@ export function DynamicOwner() {
                               >
                                 <SelectTrigger
                                   id={`owner-${owner.id}-til`}
-                                  className="h-8"
+                                  className="h-8 w-20 rounded cursor-pointer"
                                 >
                                   <SelectValue placeholder="০" />
                                 </SelectTrigger>
@@ -726,31 +726,56 @@ export function DynamicOwner() {
               })}
             </div>
 
-            <div className="flex items-center justify-between bg-white px-4 py-3 rounded">
+            <div className="flex items-center justify-between bg-gray-100 mt-2 border border-gray-200 px-4 py-1 rounded">
               <h3 className="text-lg font-semibold">
                 মালিকগণ ({owners.length} জন)
               </h3>
               <Button
                 onClick={addOwner}
-                className="text-lg bg-gray-600 text-white font-semibold rounded cursor-pointer hover:bg-gray-900"
+                className="text-md bg-gray-600 text-white font-semibold rounded cursor-pointer hover:bg-gray-900"
                 size="lg"
               >
-                <PlusCircle className="h-4 w-4 mr-2" />
+                <PlusCircle className="h-4 w-4" />
                 নতুন মালিক যোগ করুন
               </Button>
             </div>
           </div>
 
-          <div className="flex justify-evenly gap-2 bg-white my-2 p-2 rounded">
-            <p>আনা = {totals.anaSum} </p>
-            <p>গন্ডা = {totals.gondaSum}</p>
-            <p>করা = {totals.koraSum}</p>
-            <p>ক্রান্তি = {totals.krantiSum}</p>
-            <p>তিল = {totals.tilSum}</p>
+          <div className="flex justify-evenly gap-2 bg-gray-100 border border-gray-200 my-2 p-2 rounded">
+            <p className="text-lg">
+              আনা ={' '}
+              <span className="text-amber-600 text-md font-semibold">
+                {totals.anaSum}
+              </span>{' '}
+            </p>
+            <p className="text-lg">
+              গন্ডা ={' '}
+              <span className="text-amber-600 text-md font-semibold">
+                {totals.gondaSum}
+              </span>
+            </p>
+            <p className="text-lg">
+              করা ={' '}
+              <span className="text-amber-600 text-md font-semibold">
+                {totals.koraSum}
+              </span>
+            </p>
+            <p className="text-lg">
+              ক্রান্তি ={' '}
+              <span className="text-amber-600 text-md font-semibold">
+                {totals.krantiSum}
+              </span>
+            </p>
+            <p className="text-lg">
+              তিল ={' '}
+              <span className="text-amber-600 text-md font-semibold">
+                {totals.tilSum}
+              </span>
+            </p>
           </div>
 
           {/* Action Buttons */}
-          <div className="flex justify-between gap-0 px-4 py-2 bg-white rounded">
+          <div className="flex justify-between gap-0 px-4 py-1 bg-gray-100 border border-gray-200 rounded">
             <div className="flex flex-col gap-1">
               <div className="flex justify-between items-center gap-4">
                 <Label
@@ -766,7 +791,7 @@ export function DynamicOwner() {
                   min="0"
                   value={totalDecimal || ''}
                   onChange={(e) => handleTotalDecimalChange(e.target.value)}
-                  className={`w-32 rounded bg-gray-100 ${totalDecimalError ? 'border-red-500 focus:ring-red-500' : ''}`}
+                  className={`w-32 rounded bg-white ${totalDecimalError ? 'border-red-500 focus:ring-red-500' : ''}`}
                 />
               </div>
               {totalDecimalError && (
@@ -778,7 +803,7 @@ export function DynamicOwner() {
             <div className="flex items-center gap-4">
               <Button
                 onClick={calculateDistribution}
-                className="text-lg rounded bg-amber-300 text-black font-bold cursor-pointer hover:text-white"
+                className="text-lg rounded bg-gray-600 font-bold cursor-pointer text-white hover:bg-gray-900"
                 size="lg"
               >
                 <Calculator className="h-4 w-4 mr-2" />
@@ -843,19 +868,30 @@ export function DynamicOwner() {
           )}
 
           {/* Info Section */}
-          <div className="mt-6 bg-yellow-100 text-md border border-gray-300 p-4">
-            <h4 className="font-semibold mb-2">প্রতীক নির্দেশিকা:</h4>
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-2 mb-3">
-              <div className="text-lg">
-                <span className="font-bold">আনা:</span> ১=⁄, ২=৵, ৩=৶, ৪=৷,
-                ৫=৷⁄, ৬=৷৵, ৭=৷৶, ৮=৷৷, ৯=৷৷⁄, ১০=৷৷৵, ১১=৷৷৶, ১২=৸, ১৩=৸⁄,
-                ১৪=৸৵, ১৫=৸৶, ১৬=১্
-              </div>
-              <div className="text-lg">
-                <span className="font-bold">কড়া:</span> ১=৷, ২=৷৷, ৩=৸
-              </div>
-              <div className="text-lg">
-                <span className="font-bold">ক্রান্তি:</span> ১=৴, ২=৴৴
+          <div className="mt-2 text-md border border-gray-300 rounded p-2">
+            <div>
+              <h4 className="font-semibold mb-2 text-center bg-gray-200 p-2">
+                নির্ধারিত মান
+              </h4>
+              <div className="grid grid-cols-3 gap-2 mb-0">
+                <div className="text-lg bg-yellow-100 p-2 rounded">
+                  <span className="font-bold">আনা:</span> ১=⁄, ২=৵, ৩=৶, ৪=৷,
+                  ৫=৷⁄, ৬=৷৵, ৭=৷৶, ৮=৷৷, ৯=৷৷⁄, ১০=৷৷৵, ১১=৷৷৶, ১২=৸, ১৩=৸⁄,
+                  ১৪=৸৵, ১৫=৸৶, ১৬=১্
+                </div>
+                <div className="text-lg bg-yellow-100 p-2 rounded">
+                  <p className="font-bold">কড়া: ১=৷, ২=৷৷, ৩=৸</p>
+                  <p className="font-bold">ক্রান্তি: ১=৴, ২=৴৴</p>
+                </div>
+                {/* info fo ana gonda */}
+                <div className="text-md bg-yellow-100 p-2 rounded">
+                  <ul className="list-disc list-inside space-y-1">
+                    <li>১ আনা = ২০ গন্ডা</li>
+                    <li>১ গন্ডা = ৪ কড়া</li>
+                    <li>১ কড়া = ৩ ক্রান্তি</li>
+                    <li>১ ক্রান্তি = ২০ তিল</li>
+                  </ul>
+                </div>
               </div>
             </div>
           </div>

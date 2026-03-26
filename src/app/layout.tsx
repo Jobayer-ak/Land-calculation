@@ -28,6 +28,18 @@ export default function RootLayout({
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}
       >
         {children}
+        <footer className="w-full text-center py-4 bg-gray-300">
+          <p className="text-sm text-gray-900">
+            <span className="text-blue-600">©</span> {new Date().getFullYear()}{' '}
+            আনা-গন্ডা ক্যালকুলেটর.{' '}
+            <span className="italic">All rights reserved by </span>
+            <span className="text-amber-900 font-semibold">
+              {' '}
+              Md. Jobayer Akanda <span className="text-blue-500">& </span>
+              Md.Mozameml Hoq
+            </span>
+          </p>
+        </footer>
       </body>
     </html>
   );
