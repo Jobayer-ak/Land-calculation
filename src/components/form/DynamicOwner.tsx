@@ -450,7 +450,7 @@ export function DynamicOwner() {
   };
 
   return (
-    <Card className="w-full border-none px-0 py-2 rounded-sm">
+    <Card className="w-full border-none py-2 rounded-sm">
       <CardHeader className="py-0">
         <CardTitle className="bg-gray-200 rounded border border-gray-300 py-2 text-2xl text-amber-900 text-center flex items-center justify-center gap-2">
           আনা গন্ডা যৌথ মালিকের তফসিল ক্যালকুলেটর
@@ -727,7 +727,7 @@ export function DynamicOwner() {
             </div>
 
             <div className="flex items-center justify-between bg-gray-100 mt-2 border border-gray-200 px-4 py-1 rounded">
-              <h3 className="text-lg font-semibold">
+              <h3 className="text-lg text-gray-700 font-semibold">
                 মালিকগণ ({owners.length} জন)
               </h3>
               <Button
@@ -823,33 +823,37 @@ export function DynamicOwner() {
           {/* Summary Result */}
           {showResult && (
             <div className="mt-4 p-4 bg-yellow-100 rounded border border-gray-300">
-              <h4 className="font-semibold rounded text-xl bg-gray-400 py-4 text-primary mb-4 flex justify-center">
+              <h4 className="font-semibold rounded text-gray-900 text-xl bg-gray-400 py-4 mb-4 flex justify-center">
                 হিস্যার ফলাফল (সারসংক্ষেপ):
               </h4>
-              <div className="space-y-3">
+              <div className="space-y-3 pl-2">
                 <div className="text-lg grid grid-cols-3 gap-2 font-semibold border-b border-gray-300 pb-2">
-                  <div>মালিকের নাম</div>
-                  <div>অংশ (১ এর মধ্যে)</div>
-                  <div>খতিয়ানে মালিকের জমির পরিমাণ</div>
+                  <div className="text-gray-700">মালিকের নাম</div>
+                  <div className="text-gray-700">অংশ (১ এর মধ্যে)</div>
+                  <div className="text-gray-700">
+                    খতিয়ানে মালিকের জমির পরিমাণ
+                  </div>
                 </div>
                 {owners.map((owner) => (
                   <div
                     key={owner.id}
-                    className="grid grid-cols-3 gap-2 text-sm border-b border-gray-300 last:border-0 pb-2 last:pb-0"
+                    className="grid grid-cols-3 gap-3 text-sm border-b border-gray-300 last:border-0 pb-2 last:pb-0"
                   >
-                    <div className="font-bold text-lg">{owner.name}</div>
-                    <div className="text-lg text-red-600 font-bold dark:text-purple-400">
+                    <div className="font-bold text-lg text-gray-700 bg-white px-2 py-1">
+                      {owner.name}
+                    </div>
+                    <div className="text-lg text-red-600 font-bold bg-white px-2 py-1 dark:text-purple-400">
                       {owner.shareValue.toFixed(6)}
                     </div>
-                    <div className="text-lg text-purple-600 font-bold dark:text-green-400">
+                    <div className="text-lg text-purple-600 font-bold bg-white px-2 py-1 dark:text-green-400">
                       {owner.decimalValue.toFixed(3)} শতক
                     </div>
                   </div>
                 ))}
 
                 {/* Total Row - shows sum of shares = 1 */}
-                <div className="grid grid-cols-3 gap-2 text-lg font-semibold pt-2 border-t">
-                  <div>মোট</div>
+                <div className="grid grid-cols-3 gap-2 text-lg font-semibold pl-2 pt-2 border-t">
+                  <div className="text-gray-700">মোট</div>
                   <div className="text-purple-600 dark:text-purple-400">
                     {totalShareSum.toFixed(6)}
                   </div>
@@ -859,7 +863,7 @@ export function DynamicOwner() {
                 </div>
 
                 {/* Verification message */}
-                <div className="text-md text-center mt-2 p-2 bg-green-50 dark:bg-green-900/20 rounded-md">
+                <div className="text-md text-center mt-2 p-2 bg-white rounded">
                   <span className="font-semibold">যাচাইকরণ:</span> সব অংশের
                   যোগফল = {totalShareSum.toFixed(6)} (১ হওয়া উচিত)
                 </div>
@@ -870,22 +874,26 @@ export function DynamicOwner() {
           {/* Info Section */}
           <div className="mt-2 text-md border border-gray-300 rounded p-2">
             <div>
-              <h4 className="font-semibold mb-2 text-center bg-gray-200 p-2">
+              <h4 className="font-semibold mb-2 text-center text-gray-700 bg-gray-200 p-2">
                 নির্ধারিত মান
               </h4>
               <div className="grid grid-cols-3 gap-2 mb-0">
                 <div className="text-lg bg-yellow-100 p-2 rounded">
-                  <span className="font-bold">আনা:</span> ১=⁄, ২=৵, ৩=৶, ৪=৷,
-                  ৫=৷⁄, ৬=৷৵, ৭=৷৶, ৮=৷৷, ৯=৷৷⁄, ১০=৷৷৵, ১১=৷৷৶, ১২=৸, ১৩=৸⁄,
-                  ১৪=৸৵, ১৫=৸৶, ১৬=১্
+                  <span className="font-bold text-gray-700">আনা:</span> ১=⁄,
+                  ২=৵, ৩=৶, ৪=৷, ৫=৷⁄, ৬=৷৵, ৭=৷৶, ৮=৷৷, ৯=৷৷⁄, ১০=৷৷৵, ১১=৷৷৶,
+                  ১২=৸, ১৩=৸⁄, ১৪=৸৵, ১৫=৸৶, ১৬=১্
                 </div>
                 <div className="text-lg bg-yellow-100 p-2 rounded">
-                  <p className="font-bold">কড়া: ১=৷, ২=৷৷, ৩=৸</p>
-                  <p className="font-bold">ক্রান্তি: ১=৴, ২=৴৴</p>
+                  <p className="font-bold text-gray-700">
+                    কড়া: <span className="font-normal">১=৷, ২=৷৷, ৩=৸</span>
+                  </p>
+                  <p className="font-bold text-gray-700">
+                    ক্রান্তি: <span className="font-normal">১=৴, ২=৴৴</span>
+                  </p>
                 </div>
                 {/* info fo ana gonda */}
                 <div className="text-md bg-yellow-100 p-2 rounded">
-                  <ul className="list-disc list-inside space-y-1">
+                  <ul className="list-disc list-inside space-y-1 text-gray-700">
                     <li>১ আনা = ২০ গন্ডা</li>
                     <li>১ গন্ডা = ৪ কড়া</li>
                     <li>১ কড়া = ৩ ক্রান্তি</li>
