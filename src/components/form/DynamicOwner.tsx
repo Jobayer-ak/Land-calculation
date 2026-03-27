@@ -12,16 +12,15 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { Calculator, MinusCircle, PlusCircle } from 'lucide-react';
+import { calculateLandDistribution } from '@/lib/landApi';
+import { Calculator, Loader2, MinusCircle, PlusCircle } from 'lucide-react';
 import { useState } from 'react';
 
-// Conversion factors
+// Conversion factors for display only (not used for calculation)
 const GONDA_PER_ANA = 20;
 const KORA_PER_GONDA = 4;
 const KRANTI_PER_KORA = 3;
 const TIL_PER_KRANTI = 20;
-const SQFT_PER_DECIMAL = 435.6; // 1 decimal = 435.6 sqft
-const SQFT_PER_GONDA = 864; // 1 gonda = 864 sqft
 
 // আনার জন্য প্রতীক (০-১৬)
 const anaSymbols: Record<number, string> = {
@@ -66,46 +65,69 @@ const koraOptions = Array.from({ length: 4 }, (_, i) => i); // 0-3
 const krantiOptions = Array.from({ length: 3 }, (_, i) => i); // 0-2
 const tilOptions = Array.from({ length: 20 }, (_, i) => i); // 0-19
 
-interface LandAmount {
-  ana: number;
-  gonda: number;
-  kora: number;
-  kranti: number;
-  til: number;
-}
-
-interface Owner {
+interface OwnerWithCalculations {
   id: string;
   name: string;
-  landAmount: LandAmount; // আনা-গন্ডায় জমির পরিমাণ (দলিল অনুযায়ী)
-  shareValue: number; // অংশের মান (১ এর মধ্যে কত অংশ) - দশমিক আকারে
-  percentage: number; // শতাংশ
-  decimalValue: number; // দশমিকে জমির পরিমাণ
-  linkedTo: string | null; // ID of the owner this owner is linked to
+  landAmount: {
+    ana: number;
+    gonda: number;
+    kora: number;
+    kranti: number;
+    til: number;
+  };
+  linkedTo: string | null;
+  shareValue?: number;
+  percentage?: number;
+  decimalValue?: number;
 }
 
 export function DynamicOwner() {
-  const [totalDecimal, setTotalDecimal] = useState<number>(0); // মোট জমি দশমিকে (ডিফল্ট ০)
-  const [totalLandInGonda, setTotalLandInGonda] = useState<number>(0); // মোট জমি গন্ডায়
-  const [totalLandInTil, setTotalLandInTil] = useState<number>(0); // মোট জমি তিলে
-  const [totalDecimalError, setTotalDecimalError] = useState<boolean>(false); // Error state for total decimal field
+  const [totalDecimal, setTotalDecimal] = useState<number>(0);
+  const [totalDecimalError, setTotalDecimalError] = useState<boolean>(false);
+  const [isCalculating, setIsCalculating] = useState<boolean>(false);
+  const [calculationResult, setCalculationResult] = useState<{
+    owners: OwnerWithCalculations[];
+    totals: {
+      ana: number;
+      gonda: number;
+      kora: number;
+      kranti: number;
+      til: number;
+    };
+    totalShareSum: number;
+    totalDecimal: number;
+  } | null>(null);
 
-  const [owners, setOwners] = useState<Owner[]>([
+  const [owners, setOwners] = useState<OwnerWithCalculations[]>([
     {
       id: crypto.randomUUID ? crypto.randomUUID() : `owner-${Date.now()}-1`,
       name: 'মালিক ১',
       landAmount: { ana: 0, gonda: 0, kora: 0, kranti: 0, til: 0 },
-      shareValue: 0,
-      percentage: 0,
-      decimalValue: 0,
       linkedTo: null,
     },
   ]);
 
   const [showResult, setShowResult] = useState<boolean>(false);
 
-  // Conversion functions
-  const convertToTil = (land: LandAmount): number => {
+  // Calculate totals from all owners (client-side for preview only)
+  const calculateFieldTotals = () => {
+    let totalTilSum = 0;
+
+    owners.forEach((owner) => {
+      totalTilSum += convertToTil(owner.landAmount);
+    });
+
+    return convertFromTil(totalTilSum);
+  };
+
+  // Helper functions for display
+  const convertToTil = (land: {
+    ana: number;
+    gonda: number;
+    kora: number;
+    kranti: number;
+    til: number;
+  }): number => {
     return (
       land.ana *
         GONDA_PER_ANA *
@@ -119,7 +141,7 @@ export function DynamicOwner() {
     );
   };
 
-  const convertFromTil = (totalTil: number): LandAmount => {
+  const convertFromTil = (totalTil: number) => {
     let remaining = totalTil;
 
     const ana = Math.floor(
@@ -144,54 +166,23 @@ export function DynamicOwner() {
     return { ana, gonda, kora, kranti, til };
   };
 
-  // Calculate totals from all owners with normalization
-  const calculateFieldTotals = () => {
-    let totalTilSum = 0;
-
-    owners.forEach((owner) => {
-      totalTilSum += convertToTil(owner.landAmount);
-    });
-
-    const normalizedTotals = convertFromTil(totalTilSum);
-
-    return {
-      anaSum: normalizedTotals.ana,
-      gondaSum: normalizedTotals.gonda,
-      koraSum: normalizedTotals.kora,
-      krantiSum: normalizedTotals.kranti,
-      tilSum: normalizedTotals.til,
-    };
-  };
-
   const totals = calculateFieldTotals();
 
-  // মোট দশমিক জমি পরিবর্তন
+  // Handle total decimal change
   const handleTotalDecimalChange = (value: string) => {
     const newTotal = parseFloat(value) || 0;
     setTotalDecimal(newTotal);
-
-    // Clear error when user starts typing
     if (totalDecimalError) {
       setTotalDecimalError(false);
     }
-
-    // দশমিক থেকে গন্ডা ও তিলে রূপান্তর
-    const totalSqft = newTotal * SQFT_PER_DECIMAL;
-    const totalGonda = totalSqft / SQFT_PER_GONDA;
-    setTotalLandInGonda(totalGonda);
-
-    // তিলে রূপান্তর (সঠিক হিসাবের জন্য)
-    const totalTil =
-      totalGonda * KORA_PER_GONDA * KRANTI_PER_KORA * TIL_PER_KRANTI;
-    setTotalLandInTil(totalTil);
-
     setShowResult(false);
+    setCalculationResult(null);
   };
 
-  // Handle owner land change with auto-normalization
+  // Handle owner land change
   const handleOwnerLandChange = (
     ownerId: string,
-    field: keyof LandAmount,
+    field: keyof (typeof owners)[0]['landAmount'],
     value: string,
   ) => {
     const numericValue = parseInt(value, 10);
@@ -201,15 +192,15 @@ export function DynamicOwner() {
       prev.map((owner) => {
         if (owner.id === ownerId) {
           const updatedLandAmount = {
-            ana: owner.landAmount?.ana || 0,
-            gonda: owner.landAmount?.gonda || 0,
-            kora: owner.landAmount?.kora || 0,
-            kranti: owner.landAmount?.kranti || 0,
-            til: owner.landAmount?.til || 0,
+            ana: owner.landAmount.ana || 0,
+            gonda: owner.landAmount.gonda || 0,
+            kora: owner.landAmount.kora || 0,
+            kranti: owner.landAmount.kranti || 0,
+            til: owner.landAmount.til || 0,
             [field]: newValue,
           };
 
-          // Convert to til and back to normalize
+          // Normalize
           const totalTil = convertToTil(updatedLandAmount);
           const normalized = convertFromTil(totalTil);
 
@@ -218,25 +209,22 @@ export function DynamicOwner() {
             landAmount: normalized,
           };
 
-          // If this owner is linked to others, update all linked owners
           return updatedOwner;
         }
         return owner;
       }),
     );
 
-    // Update all owners that are linked to this owner
+    // Update linked owners
     setOwners((prev) => {
       const updatedOwners = [...prev];
       const sourceOwner = updatedOwners.find((o) => o.id === ownerId);
 
       if (sourceOwner) {
-        // Find all owners that are linked to this owner (including those that link to this one)
         const linkedOwnerIds = updatedOwners
           .filter((o) => o.linkedTo === ownerId)
           .map((o) => o.id);
 
-        // Update all linked owners with the same land amount
         linkedOwnerIds.forEach((linkedId) => {
           const index = updatedOwners.findIndex((o) => o.id === linkedId);
           if (index !== -1) {
@@ -252,9 +240,10 @@ export function DynamicOwner() {
     });
 
     setShowResult(false);
+    setCalculationResult(null);
   };
 
-  // Handle linking owner to previous owner
+  // Handle linking owner
   const handleLinkOwner = (ownerId: string, previousOwnerId: string | null) => {
     setOwners((prev) => {
       const updatedOwners = [...prev];
@@ -265,14 +254,12 @@ export function DynamicOwner() {
 
       if (currentOwnerIndex !== -1) {
         if (previousOwnerId && previousOwner) {
-          // Link to previous owner and copy their land amount
           updatedOwners[currentOwnerIndex] = {
             ...updatedOwners[currentOwnerIndex],
             linkedTo: previousOwnerId,
             landAmount: { ...previousOwner.landAmount },
           };
         } else {
-          // Unlink
           updatedOwners[currentOwnerIndex] = {
             ...updatedOwners[currentOwnerIndex],
             linkedTo: null,
@@ -284,9 +271,10 @@ export function DynamicOwner() {
     });
 
     setShowResult(false);
+    setCalculationResult(null);
   };
 
-  // Owner name change handler
+  // Handle owner name change
   const handleOwnerNameChange = (ownerId: string, value: string) => {
     setOwners((prev) =>
       prev.map((owner) =>
@@ -300,18 +288,16 @@ export function DynamicOwner() {
     const newId = crypto.randomUUID
       ? crypto.randomUUID()
       : `owner-${Date.now()}-${owners.length + 1}`;
-    const newOwner: Owner = {
+    const newOwner: OwnerWithCalculations = {
       id: newId,
       name: `মালিক ${owners.length + 1}`,
       landAmount: { ana: 0, gonda: 0, kora: 0, kranti: 0, til: 0 },
-      shareValue: 0,
-      percentage: 0,
-      decimalValue: 0,
       linkedTo: null,
     };
 
     setOwners([...owners, newOwner]);
     setShowResult(false);
+    setCalculationResult(null);
   };
 
   // Remove owner
@@ -323,17 +309,16 @@ export function DynamicOwner() {
 
     setOwners(owners.filter((owner) => owner.id !== ownerId));
     setShowResult(false);
+    setCalculationResult(null);
   };
 
-  // Calculate distribution
-  const calculateDistribution = () => {
-    // Check if total decimal is valid
+  // Calculate distribution via backend API
+  const calculateDistribution = async () => {
     if (totalDecimal <= 0) {
       setTotalDecimalError(true);
       return;
     }
 
-    // Check if any owner has land
     const hasLand = owners.some(
       (owner) =>
         owner.landAmount.ana > 0 ||
@@ -348,106 +333,51 @@ export function DynamicOwner() {
       return;
     }
 
-    // প্রতি মালিকের জমি তিলে রূপান্তর
-    const ownersInTil = owners.map((owner) => {
-      const til =
-        owner.landAmount.ana *
-          GONDA_PER_ANA *
-          KORA_PER_GONDA *
-          KRANTI_PER_KORA *
-          TIL_PER_KRANTI +
-        owner.landAmount.gonda *
-          KORA_PER_GONDA *
-          KRANTI_PER_KORA *
-          TIL_PER_KRANTI +
-        owner.landAmount.kora * KRANTI_PER_KORA * TIL_PER_KRANTI +
-        owner.landAmount.kranti * TIL_PER_KRANTI +
-        owner.landAmount.til;
+    setIsCalculating(true);
 
-      return {
-        ...owner,
-        tilValue: til,
-      };
-    });
+    try {
+      const result = await calculateLandDistribution(totalDecimal, owners);
 
-    // মোট তিলের পরিমাণ (দলিল অনুযায়ী)
-    const totalTilFromDocs = ownersInTil.reduce(
-      (sum, owner) => sum + owner.tilValue,
-      0,
-    );
-
-    if (totalTilFromDocs === 0) {
-      alert('মোট জমির পরিমাণ ০ হতে পারে না');
-      return;
+      if (result.success && result.data) {
+        setCalculationResult(result.data);
+        setShowResult(true);
+        setTotalDecimalError(false);
+      } else {
+        alert(result.error || 'গণনা করতে সমস্যা হয়েছে');
+      }
+    } catch (error: any) {
+      console.error('Calculation error:', error);
+      alert('গণনা করতে সমস্যা হয়েছে। অনুগ্রহ করে আবার চেষ্টা করুন।');
+    } finally {
+      setIsCalculating(false);
     }
-
-    // আপডেটেড owners অ্যারে তৈরি
-    const updatedOwners = ownersInTil.map((owner) => {
-      // অংশের মান (১ এর মধ্যে কত অংশ) = (মালিকের জমি / মোট দলিলের জমি)
-      const shareValue = owner.tilValue / totalTilFromDocs;
-
-      // শতাংশ = (মালিকের জমি / মোট দলিলের জমি) * ১০০
-      const percentage = (owner.tilValue / totalTilFromDocs) * 100;
-
-      // দশমিকে জমির পরিমাণ = (মালিকের জমি / মোট দলিলের জমি) * মোট দশমিক জমি
-      const decimalValue = (owner.tilValue / totalTilFromDocs) * totalDecimal;
-
-      return {
-        ...owner,
-        shareValue,
-        percentage,
-        decimalValue,
-      };
-    });
-
-    setOwners(updatedOwners);
-    setShowResult(true);
-    setTotalDecimalError(false);
   };
 
   // Reset calculator
   const resetCalculator = () => {
     setTotalDecimal(0);
-    setTotalLandInGonda(0);
-    setTotalLandInTil(0);
     setTotalDecimalError(false);
     setOwners([
       {
         id: crypto.randomUUID ? crypto.randomUUID() : `owner-${Date.now()}-1`,
         name: 'মালিক ১',
         landAmount: { ana: 0, gonda: 0, kora: 0, kranti: 0, til: 0 },
-        shareValue: 0,
-        percentage: 0,
-        decimalValue: 0,
         linkedTo: null,
       },
     ]);
     setShowResult(false);
+    setCalculationResult(null);
   };
-
-  // Helper function to get land display
-  const getLandDisplay = (land: LandAmount) => {
-    const parts = [];
-    if (land.ana) parts.push(`${land.ana} আনা (${anaSymbols[land.ana]})`);
-    if (land.gonda) parts.push(`${land.gonda} গন্ডা`);
-    if (land.kora) parts.push(`${land.kora} কড়া (${koraSymbols[land.kora]})`);
-    if (land.kranti)
-      parts.push(`${land.kranti} ক্রান্তি (${krantiSymbols[land.kranti]})`);
-    if (land.til) parts.push(`${land.til} তিল`);
-    return parts.length ? parts.join(' ') : '০ আনা';
-  };
-
-  // Calculate total of share values to verify it equals 1
-  const totalShareSum = owners.reduce(
-    (sum, owner) => sum + owner.shareValue,
-    0,
-  );
 
   // Get available previous owners for linking
   const getPreviousOwners = (currentOwnerId: string) => {
     const currentIndex = owners.findIndex((o) => o.id === currentOwnerId);
     return owners.slice(0, currentIndex);
   };
+
+  // Use calculation result or local owners for display
+  const displayOwners = calculationResult?.owners || owners;
+  const displayTotals = calculationResult?.totals || totals;
 
   return (
     <Card className="w-full border-none py-2 rounded-sm">
@@ -470,7 +400,6 @@ export function DynamicOwner() {
                   <div key={owner.id} className="border rounded p-2 bg-card">
                     <div className="gap-3">
                       <div className="space-y-0">
-                        {/* Land Amount Input (আনা-গন্ডা with symbols) */}
                         <div className="">
                           <div className="flex justify-between items-center gap-2 bg-yellow-100 px-3 py-2 rounded">
                             {/* Owner Name and Link Option */}
@@ -489,7 +418,6 @@ export function DynamicOwner() {
                                 disabled={isLinked}
                               />
 
-                              {/* Link Checkbox for owners that have previous owners */}
                               {previousOwners.length > 0 && (
                                 <div className="flex items-center gap-2 text-end bg-gray-100 px-2 py-1 rounded">
                                   <input
@@ -501,14 +429,12 @@ export function DynamicOwner() {
                                         e.target.checked &&
                                         previousOwners.length > 0
                                       ) {
-                                        // When checking, link to the most recent previous owner by default
                                         const lastOwner =
                                           previousOwners[
                                             previousOwners.length - 1
                                           ];
                                         handleLinkOwner(owner.id, lastOwner.id);
                                       } else {
-                                        // Unlink
                                         handleLinkOwner(owner.id, null);
                                       }
                                     }}
@@ -526,7 +452,7 @@ export function DynamicOwner() {
                               )}
                             </div>
 
-                            {/* আনা সিলেক্ট with symbols */}
+                            {/* আনা সিলেক্ট */}
                             <div className="flex justify-center items-center gap-2">
                               <Label
                                 htmlFor={`owner-${owner.id}-ana`}
@@ -535,7 +461,7 @@ export function DynamicOwner() {
                                 আনা
                               </Label>
                               <Select
-                                value={owner.landAmount?.ana.toString() || '0'}
+                                value={owner.landAmount.ana.toString()}
                                 onValueChange={(value) =>
                                   handleOwnerLandChange(owner.id, 'ana', value)
                                 }
@@ -560,7 +486,7 @@ export function DynamicOwner() {
                               </Select>
                             </div>
 
-                            {/* গন্ডা সিলেক্ট (numbers only) */}
+                            {/* গন্ডা সিলেক্ট */}
                             <div className="flex justify-center items-center gap-2">
                               <Label
                                 htmlFor={`owner-${owner.id}-gonda`}
@@ -569,9 +495,7 @@ export function DynamicOwner() {
                                 গন্ডা
                               </Label>
                               <Select
-                                value={
-                                  owner.landAmount?.gonda.toString() || '0'
-                                }
+                                value={owner.landAmount.gonda.toString()}
                                 onValueChange={(value) =>
                                   handleOwnerLandChange(
                                     owner.id,
@@ -600,7 +524,7 @@ export function DynamicOwner() {
                               </Select>
                             </div>
 
-                            {/* কড়া সিলেক্ট with symbols */}
+                            {/* কড়া সিলেক্ট */}
                             <div className="flex justify-center items-center gap-2">
                               <Label
                                 htmlFor={`owner-${owner.id}-kora`}
@@ -609,7 +533,7 @@ export function DynamicOwner() {
                                 কড়া
                               </Label>
                               <Select
-                                value={owner.landAmount?.kora.toString() || '0'}
+                                value={owner.landAmount.kora.toString()}
                                 onValueChange={(value) =>
                                   handleOwnerLandChange(owner.id, 'kora', value)
                                 }
@@ -634,7 +558,7 @@ export function DynamicOwner() {
                               </Select>
                             </div>
 
-                            {/* ক্রান্তি সিলেক্ট with symbols */}
+                            {/* ক্রান্তি সিলেক্ট */}
                             <div className="flex justify-center items-center gap-2">
                               <Label
                                 htmlFor={`owner-${owner.id}-kranti`}
@@ -643,9 +567,7 @@ export function DynamicOwner() {
                                 ক্রান্তি
                               </Label>
                               <Select
-                                value={
-                                  owner.landAmount?.kranti.toString() || '0'
-                                }
+                                value={owner.landAmount.kranti.toString()}
                                 onValueChange={(value) =>
                                   handleOwnerLandChange(
                                     owner.id,
@@ -674,7 +596,7 @@ export function DynamicOwner() {
                               </Select>
                             </div>
 
-                            {/* তিল সিলেক্ট (numbers only) */}
+                            {/* তিল সিলেক্ট */}
                             <div className="flex justify-center items-center gap-2">
                               <Label
                                 htmlFor={`owner-${owner.id}-til`}
@@ -683,7 +605,7 @@ export function DynamicOwner() {
                                 তিল
                               </Label>
                               <Select
-                                value={owner.landAmount?.til.toString() || '0'}
+                                value={owner.landAmount.til.toString()}
                                 onValueChange={(value) =>
                                   handleOwnerLandChange(owner.id, 'til', value)
                                 }
@@ -745,31 +667,31 @@ export function DynamicOwner() {
             <p className="text-lg">
               আনা ={' '}
               <span className="text-amber-600 text-md font-semibold">
-                {totals.anaSum}
+                {displayTotals.ana}
               </span>{' '}
             </p>
             <p className="text-lg">
               গন্ডা ={' '}
               <span className="text-amber-600 text-md font-semibold">
-                {totals.gondaSum}
+                {displayTotals.gonda}
               </span>
             </p>
             <p className="text-lg">
               করা ={' '}
               <span className="text-amber-600 text-md font-semibold">
-                {totals.koraSum}
+                {displayTotals.kora}
               </span>
             </p>
             <p className="text-lg">
               ক্রান্তি ={' '}
               <span className="text-amber-600 text-md font-semibold">
-                {totals.krantiSum}
+                {displayTotals.kranti}
               </span>
             </p>
             <p className="text-lg">
               তিল ={' '}
               <span className="text-amber-600 text-md font-semibold">
-                {totals.tilSum}
+                {displayTotals.til}
               </span>
             </p>
           </div>
@@ -791,7 +713,9 @@ export function DynamicOwner() {
                   min="0"
                   value={totalDecimal || ''}
                   onChange={(e) => handleTotalDecimalChange(e.target.value)}
-                  className={`w-32 rounded bg-white ${totalDecimalError ? 'border-red-500 focus:ring-red-500' : ''}`}
+                  className={`w-32 rounded bg-white ${
+                    totalDecimalError ? 'border-red-500 focus:ring-red-500' : ''
+                  }`}
                 />
               </div>
               {totalDecimalError && (
@@ -805,8 +729,13 @@ export function DynamicOwner() {
                 onClick={calculateDistribution}
                 className="text-lg rounded bg-gray-600 font-bold cursor-pointer text-white hover:bg-gray-900"
                 size="lg"
+                disabled={isCalculating}
               >
-                <Calculator className="h-4 w-4 mr-2" />
+                {isCalculating ? (
+                  <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                ) : (
+                  <Calculator className="h-4 w-4 mr-2" />
+                )}
                 হিস্যা বের করুন
               </Button>
               <Button
@@ -821,7 +750,7 @@ export function DynamicOwner() {
           </div>
 
           {/* Summary Result */}
-          {showResult && (
+          {showResult && calculationResult && (
             <div className="mt-4 p-4 bg-yellow-100 rounded border border-gray-300">
               <h4 className="font-semibold rounded text-gray-900 text-xl bg-gray-400 py-4 mb-4 flex justify-center">
                 হিস্যার ফলাফল (সারসংক্ষেপ):
@@ -834,7 +763,7 @@ export function DynamicOwner() {
                     খতিয়ানে মালিকের জমির পরিমাণ
                   </div>
                 </div>
-                {owners.map((owner) => (
+                {calculationResult.owners.map((owner) => (
                   <div
                     key={owner.id}
                     className="grid grid-cols-3 gap-3 text-sm border-b border-gray-300 last:border-0 pb-2 last:pb-0"
@@ -842,42 +771,41 @@ export function DynamicOwner() {
                     <div className="font-bold text-lg text-gray-700 bg-white px-2 py-1">
                       {owner.name}
                     </div>
-                    <div className="text-lg text-red-600 font-bold bg-white px-2 py-1 dark:text-purple-400">
+                    <div className="text-lg text-red-600 font-bold bg-white px-2 py-1">
                       {owner.shareValue.toFixed(6)}
                     </div>
-                    <div className="text-lg text-purple-600 font-bold bg-white px-2 py-1 dark:text-green-400">
+                    <div className="text-lg text-purple-600 font-bold bg-white px-2 py-1">
                       {owner.decimalValue.toFixed(3)} শতক
                     </div>
                   </div>
                 ))}
 
-                {/* Total Row - shows sum of shares = 1 */}
                 <div className="grid grid-cols-3 gap-2 text-lg font-semibold pl-2 pt-2 border-t">
                   <div className="text-gray-700">মোট</div>
-                  <div className="text-purple-600 dark:text-purple-400">
-                    {totalShareSum.toFixed(6)}
+                  <div className="text-purple-600">
+                    {calculationResult.totalShareSum.toFixed(6)}
                   </div>
-                  <div className="text-green-600 dark:text-green-400">
-                    {totalDecimal.toFixed(2)} দশমিক
+                  <div className="text-green-600">
+                    {calculationResult.totalDecimal.toFixed(2)} দশমিক
                   </div>
                 </div>
 
-                {/* Verification message */}
                 <div className="text-md text-center mt-2 p-2 bg-white rounded">
                   <span className="font-semibold">যাচাইকরণ:</span> সব অংশের
-                  যোগফল = {totalShareSum.toFixed(6)} (১ হওয়া উচিত)
+                  যোগফল = {calculationResult.totalShareSum.toFixed(6)} (১ হওয়া
+                  উচিত)
                 </div>
               </div>
             </div>
           )}
 
-          {/* Info Section */}
-          <div className="mt-2 text-md border border-gray-300 rounded p-2">
+          {/* ✅ INFO SECTION - Add this here */}
+          <div className="mt-4 text-md border border-gray-300 rounded p-2">
             <div>
-              <h4 className="font-semibold mb-2 text-center text-gray-700 bg-gray-200 p-2">
+              <h4 className="font-semibold mb-2 text-center text-gray-700 bg-gray-200 p-2 rounded">
                 নির্ধারিত মান
               </h4>
-              <div className="grid grid-cols-3 gap-2 mb-0">
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-2">
                 <div className="text-lg bg-yellow-100 p-2 rounded">
                   <span className="font-bold text-gray-700">আনা:</span> ১=⁄,
                   ২=৵, ৩=৶, ৪=৷, ৫=৷⁄, ৬=৷৵, ৭=৷৶, ৮=৷৷, ৯=৷৷⁄, ১০=৷৷৵, ১১=৷৷৶,
@@ -887,11 +815,10 @@ export function DynamicOwner() {
                   <p className="font-bold text-gray-700">
                     কড়া: <span className="font-normal">১=৷, ২=৷৷, ৩=৸</span>
                   </p>
-                  <p className="font-bold text-gray-700">
+                  <p className="font-bold text-gray-700 mt-2">
                     ক্রান্তি: <span className="font-normal">১=৴, ২=৴৴</span>
                   </p>
                 </div>
-                {/* info fo ana gonda */}
                 <div className="text-md bg-yellow-100 p-2 rounded">
                   <ul className="list-disc list-inside space-y-1 text-gray-700">
                     <li>১ আনা = ২০ গন্ডা</li>
