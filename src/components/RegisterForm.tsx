@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 // components/register-form.tsx
 'use client';
 
@@ -96,20 +97,23 @@ export function RegisterForm() {
 
     try {
       // Make API call to your registration endpoint
-      const response = await fetch('http://localhost:5000/api/auth/signup', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
+      const response = await fetch(
+        `${process.env.NEXT_PUBLIC_API_URL}/api/auth/signup`,
+        {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            fullName: data.fullName,
+            email: data.email,
+            mobileNumber: data.mobileNumber,
+            address: data.address,
+            password: data.password,
+            confirmPassword: data.confirmPassword,
+          }),
         },
-        body: JSON.stringify({
-          fullName: data.fullName,
-          email: data.email,
-          mobileNumber: data.mobileNumber,
-          address: data.address,
-          password: data.password,
-          confirmPassword: data.confirmPassword,
-        }),
-      });
+      );
 
       // Check if response is JSON
       const contentType = response.headers.get('content-type');
@@ -142,8 +146,7 @@ export function RegisterForm() {
 
       let message = error.message;
       if (message.includes('Failed to fetch')) {
-        message =
-          "Cannot connect to backend server. Make sure it's running on http://localhost:5000";
+        message = `Cannot connect to backend server. Make sure it's running on ${process.env.NEXT_PUBLIC_API_URL}`;
       } else if (message.includes('already exists')) {
         message = 'User with this email or mobile number already exists';
       }

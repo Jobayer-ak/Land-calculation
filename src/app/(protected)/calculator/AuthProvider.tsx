@@ -24,13 +24,16 @@ export default function AuthProvider({ children }: { children: ReactNode }) {
 
       try {
         console.log('🔵 Verifying token with backend...');
-        const response = await fetch('http://localhost:5000/api/auth/verify', {
-          method: 'GET',
-          headers: {
-            Authorization: `Bearer ${token}`,
-            'Content-Type': 'application/json',
+        const response = await fetch(
+          `${process.env.NEXT_PUBLIC_API_URL}/api/auth/verify`,
+          {
+            method: 'GET',
+            headers: {
+              Authorization: `Bearer ${token}`,
+              'Content-Type': 'application/json',
+            },
           },
-        });
+        );
 
         const data = await response.json();
         console.log('🔵 Verify response status:', response.status);

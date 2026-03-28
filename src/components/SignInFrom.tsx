@@ -1,3 +1,5 @@
+/* eslint-disable react/no-unescaped-entities */
+/* eslint-disable @typescript-eslint/no-explicit-any */
 // components/login-form.tsx
 'use client';
 
@@ -64,16 +66,20 @@ export function SignInForm({ onSuccess, onRegisterClick }: LoginFormProps) {
 
     try {
       // Make API call to your backend login endpoint
-      const response = await fetch('http://localhost:5000/api/auth/signin', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
+      const response = await fetch(
+        `${process.env.NEXT_PUBLIC_API_URL}/api/auth/signin`,
+
+        {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            email: data.email,
+            password: data.password,
+          }),
         },
-        body: JSON.stringify({
-          email: data.email,
-          password: data.password,
-        }),
-      });
+      );
 
       // Check if response is JSON
       const contentType = response.headers.get('content-type');
@@ -113,8 +119,7 @@ export function SignInForm({ onSuccess, onRegisterClick }: LoginFormProps) {
 
       let errorMessage = error.message;
       if (errorMessage.includes('Failed to fetch')) {
-        errorMessage =
-          'Cannot connect to server. Make sure backend is running on http://localhost:5000';
+        errorMessage = `Cannot connect to server. Make sure backend is running on ${process.env.NEXT_PUBLIC_API_URL}`;
       } else if (errorMessage.includes('Invalid credentials')) {
         errorMessage = 'Invalid email or password. Please try again.';
       }

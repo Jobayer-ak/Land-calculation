@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 // src/app/(protected)/calculator/CalculatorLayoutClient.tsx
 'use client';
 
@@ -61,7 +62,7 @@ export default function CalculatorLayoutClient({
       <div className="min-h-screen bg-gray-100 flex">
         {/* Sidebar */}
         <aside
-          className={`bg-gradient-to-b from-gray-900 to-gray-800 shadow-xl transition-all duration-300 ${isSidebarOpen ? 'w-64' : 'w-20'} fixed h-full z-10 flex flex-col`}
+          className={`bg-linear-to-b from-gray-900 to-gray-800 shadow-xl transition-all duration-300 ${isSidebarOpen ? 'w-64' : 'w-20'} fixed h-full z-10 flex flex-col`}
         >
           <div className="p-4 border-b border-gray-700 flex items-center justify-between">
             {isSidebarOpen && (

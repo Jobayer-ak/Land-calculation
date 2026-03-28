@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 // lib/landApi.ts
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000';
 

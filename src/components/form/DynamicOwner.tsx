@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 /* eslint-disable @typescript-eslint/no-unused-vars */
 'use client';
 
@@ -339,7 +340,15 @@ export function DynamicOwner() {
       const result = await calculateLandDistribution(totalDecimal, owners);
 
       if (result.success && result.data) {
-        setCalculationResult(result.data);
+        // Ensure each owner has the required 'linkedTo' property
+        const ownersWithLinkedTo = result.data.owners.map((owner: any) => ({
+          ...owner,
+          linkedTo: owner.linkedTo ?? null,
+        }));
+        setCalculationResult({
+          ...result.data,
+          owners: ownersWithLinkedTo,
+        });
         setShowResult(true);
         setTotalDecimalError(false);
       } else {
@@ -772,10 +781,15 @@ export function DynamicOwner() {
                       {owner.name}
                     </div>
                     <div className="text-lg text-red-600 font-bold bg-white px-2 py-1">
-                      {owner.shareValue.toFixed(6)}
+                      {owner.shareValue !== undefined
+                        ? owner.shareValue.toFixed(6)
+                        : '—'}
                     </div>
                     <div className="text-lg text-purple-600 font-bold bg-white px-2 py-1">
-                      {owner.decimalValue.toFixed(3)} শতক
+                      {owner.decimalValue !== undefined
+                        ? owner.decimalValue.toFixed(3)
+                        : '—'}{' '}
+                      শতক
                     </div>
                   </div>
                 ))}
