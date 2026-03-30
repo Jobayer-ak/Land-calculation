@@ -1,5 +1,6 @@
 import type { Metadata } from 'next';
 import { Geist, Geist_Mono } from 'next/font/google';
+import { Navbar } from '../components/navigation/Navbar';
 import './globals.css';
 
 const geistSans = Geist({
@@ -28,11 +29,12 @@ export default function RootLayout({
         className={`${geistSans.variable} ${geistMono.variable} antialiased bg-[#2c2638] min-h-screen flex flex-col justify-between`}
         suppressHydrationWarning
       >
+        <Navbar />
         {children}
         <footer className="w-full text-center mt-3 py-4 bg-gray-300">
           <p className="text-sm text-gray-900">
             <span className="text-blue-600">©</span> {new Date().getFullYear()}{' '}
-            আনা-গন্ডা ক্যালকুলেটর.{' '}
+            ভূমি হিসেব ক্যালকুলেটর.{' '}
             <span className="italic text-blue-700">
               All rights reserved by{' '}
             </span>

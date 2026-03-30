@@ -5,7 +5,8 @@ export const metadata = {
 
 export default function Home() {
   return (
-    <div className="w-full bg-gray-100 px-8 py-2">
+    <div className="w-full bg-[#2c2638] min-h-screen flex justify-end overflow-y-auto no-scrollbar">
+      <div className="flex-1"></div>
       <SignInForm />
     </div>
   );

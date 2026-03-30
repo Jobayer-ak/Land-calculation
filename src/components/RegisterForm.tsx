@@ -159,7 +159,7 @@ export function RegisterForm() {
   }
 
   return (
-    <Card className="w-full max-w-2xl mx-auto rounded bg-yellow-50 shadow">
+    <Card className="w-full max-w-xl mx-auto rounded bg-yellow-50 shadow my-2">
       <CardHeader>
         <CardTitle className="text-2xl text-center">
           Create An Account
