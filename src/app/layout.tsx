@@ -1,6 +1,7 @@
 import type { Metadata } from 'next';
 import { Geist, Geist_Mono } from 'next/font/google';
 import { Navbar } from '../components/navigation/Navbar';
+import { ToastContainer } from '../components/ui/toast';
 import './globals.css';
 
 const geistSans = Geist({
@@ -31,6 +32,7 @@ export default function RootLayout({
       >
         <Navbar />
         {children}
+        <ToastContainer />
         <footer className="w-full text-center mt-3 py-4 bg-gray-300">
           <p className="text-sm text-gray-900">
             <span className="text-blue-600">©</span> {new Date().getFullYear()}{' '}

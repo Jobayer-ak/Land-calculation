@@ -1,8 +1,18 @@
+/* eslint-disable @typescript-eslint/no-unused-vars */
 /* eslint-disable react-hooks/exhaustive-deps */
 /* eslint-disable @typescript-eslint/no-explicit-any */
 'use client';
 
-import { Eye, RefreshCw, Shield, UserCheck, UserX, X } from 'lucide-react';
+import { toast } from '@/components/ui/toast';
+import {
+  AlertTriangle,
+  Eye,
+  RefreshCw,
+  Shield,
+  UserCheck,
+  UserX,
+  X,
+} from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
 
@@ -26,6 +36,17 @@ interface ModalField {
   isDate?: boolean;
 }
 
+interface ConfirmModalProps {
+  isOpen: boolean;
+  title: string;
+  message: string;
+  onConfirm: () => void;
+  onCancel: () => void;
+  confirmText?: string;
+  cancelText?: string;
+  type?: 'warning' | 'danger' | 'info';
+}
+
 const modalFields: ModalField[] = [
   { key: 'email', label: 'Email', colSpan: 1 },
   { key: 'mobileNumber', label: 'Mobile Number', colSpan: 1 },
@@ -36,6 +57,79 @@ const modalFields: ModalField[] = [
   { key: 'lastUpdated', label: 'Last Updated', colSpan: 1, isDate: true },
 ];
 
+// Professional Confirmation Modal Component
+const ConfirmModal = ({
+  isOpen,
+  title,
+  message,
+  onConfirm,
+  onCancel,
+  confirmText = 'Confirm',
+  cancelText = 'Cancel',
+  type = 'warning',
+}: ConfirmModalProps) => {
+  if (!isOpen) return null;
+
+  const getTypeStyles = () => {
+    switch (type) {
+      case 'danger':
+        return {
+          icon: 'text-red-600',
+          button: 'bg-red-600 hover:bg-red-700 focus:ring-red-500',
+          bg: 'bg-red-50',
+        };
+      case 'warning':
+        return {
+          icon: 'text-yellow-600',
+          button: 'bg-yellow-600 hover:bg-yellow-700 focus:ring-yellow-500',
+          bg: 'bg-yellow-50',
+        };
+      default:
+        return {
+          icon: 'text-white',
+          button: 'bg-blue-600 hover:bg-blue-700 focus:ring-blue-500',
+          bg: 'bg-green-500',
+        };
+    }
+  };
+
+  const styles = getTypeStyles();
+
+  return (
+    <div className="fixed inset-0 backdrop-blur-sm bg-black/50 flex items-center justify-center z-[60] p-4">
+      <div className="bg-white rounded-xl shadow-2xl max-w-md w-full animate-in fade-in zoom-in duration-200">
+        <div className={`${styles.bg} rounded-t-xl p-4 border-b`}>
+          <div className="flex items-center space-x-3">
+            <div className={`${styles.icon}`}>
+              <AlertTriangle className="h-6 w-6" />
+            </div>
+            <h3 className="text-lg font-semibold text-gray-900">{title}</h3>
+          </div>
+        </div>
+
+        <div className="p-6">
+          <p className="text-gray-600 text-sm leading-relaxed">{message}</p>
+        </div>
+
+        <div className="flex justify-end space-x-3 p-4 border-t bg-gray-50 rounded-b-xl">
+          <button
+            onClick={onCancel}
+            className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-500 transition-colors cursor-pointer"
+          >
+            {cancelText}
+          </button>
+          <button
+            onClick={onConfirm}
+            className={`px-4 py-2 text-sm font-medium text-white rounded-lg focus:outline-none focus:ring-2 focus:ring-offset-2 transition-colors cursor-pointer ${styles.button}`}
+          >
+            {confirmText}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+};
+
 export default function AllUsers() {
   const router = useRouter();
   const [users, setUsers] = useState<User[]>([]);
@@ -44,6 +138,21 @@ export default function AllUsers() {
   const [selectedUser, setSelectedUser] = useState<User | null>(null);
   const [showUserModal, setShowUserModal] = useState(false);
   const [updating, setUpdating] = useState(false);
+
+  // Confirmation modal state
+  const [confirmModal, setConfirmModal] = useState<{
+    isOpen: boolean;
+    title: string;
+    message: string;
+    onConfirm: () => void;
+    type: 'warning' | 'danger' | 'info';
+  }>({
+    isOpen: false,
+    title: '',
+    message: '',
+    onConfirm: () => {},
+    type: 'warning',
+  });
 
   useEffect(() => {
     fetchUsers();
@@ -70,8 +179,10 @@ export default function AllUsers() {
 
       if (response.ok && data.success) {
         setUsers(data.users);
+        // toast.success('Users Loaded', `Found ${data.users.length} users`);
       } else {
         setError(data.message || 'Failed to fetch users');
+        toast.error('Error', data.message || 'Failed to fetch users');
         if (response.status === 401) {
           localStorage.removeItem('token');
           localStorage.removeItem('user');
@@ -81,6 +192,7 @@ export default function AllUsers() {
     } catch (err: any) {
       console.error('Error fetching users:', err);
       setError('Network error. Please try again.');
+      toast.error('Network Error', 'Please check your connection');
     } finally {
       setLoading(false);
     }
@@ -88,115 +200,143 @@ export default function AllUsers() {
 
   const handleActivateUser = async (userId: string, currentStatus: boolean) => {
     const action = currentStatus ? 'deactivate' : 'activate';
-    if (!confirm(`Are you sure you want to ${action} this user?`)) return;
 
-    try {
-      setUpdating(true);
-      const token = localStorage.getItem('token');
+    setConfirmModal({
+      isOpen: true,
+      title: `${action === 'activate' ? 'Activate' : 'Deactivate'} User`,
+      message: `Are you sure you want to ${action} this user? ${action === 'deactivate' ? 'They will not be able to login.' : 'They will be able to access the system.'}`,
+      type: action === 'activate' ? 'info' : 'warning',
+      onConfirm: async () => {
+        setConfirmModal((prev) => ({ ...prev, isOpen: false }));
+        try {
+          setUpdating(true);
+          const token = localStorage.getItem('token');
 
-      const response = await fetch(
-        `http://localhost:5000/api/auth/activate/${userId}`,
-        {
-          method: 'PUT',
-          headers: {
-            Authorization: `Bearer ${token}`,
-            'Content-Type': 'application/json',
-          },
-        },
-      );
+          const response = await fetch(
+            `http://localhost:5000/api/auth/activate/${userId}`,
+            {
+              method: 'PUT',
+              headers: {
+                Authorization: `Bearer ${token}`,
+                'Content-Type': 'application/json',
+              },
+            },
+          );
 
-      const data = await response.json();
+          const data = await response.json();
 
-      if (response.ok && data.success) {
-        alert(data.message);
-        fetchUsers();
-      } else {
-        alert(data.message || 'Failed to update user status');
-      }
-    } catch (err) {
-      console.error('Error updating user:', err);
-      alert('Network error. Please try again.');
-    } finally {
-      setUpdating(false);
-    }
+          if (response.ok && data.success) {
+            toast.success('Success!', data.message);
+            fetchUsers();
+          } else {
+            toast.error(
+              'Failed',
+              data.message || 'Failed to update user status',
+            );
+          }
+        } catch (err) {
+          console.error('Error updating user:', err);
+          toast.error('Error', 'Network error. Please try again.');
+        } finally {
+          setUpdating(false);
+        }
+      },
+    });
   };
 
-  const handleUpdateRole = async (userId: string, newRole: string) => {
-    if (
-      !confirm(
-        `Are you sure you want to change this user's role to ${newRole}?`,
-      )
-    )
-      return;
+  const handleUpdateRole = async (
+    userId: string,
+    newRole: string,
+    currentRole: string,
+  ) => {
+    setConfirmModal({
+      isOpen: true,
+      title: 'Change User Role',
+      message: `Are you sure you want to change this user's role from "${currentRole}" to "${newRole}"? This will affect their permissions in the system.`,
+      type: 'warning',
+      onConfirm: async () => {
+        setConfirmModal((prev) => ({ ...prev, isOpen: false }));
+        try {
+          setUpdating(true);
+          const token = localStorage.getItem('token');
 
-    try {
-      setUpdating(true);
-      const token = localStorage.getItem('token');
+          const response = await fetch(
+            `http://localhost:5000/api/auth/update-role/${userId}`,
+            {
+              method: 'PUT',
+              headers: {
+                Authorization: `Bearer ${token}`,
+                'Content-Type': 'application/json',
+              },
+              body: JSON.stringify({ role: newRole }),
+            },
+          );
 
-      const response = await fetch(
-        `http://localhost:5000/api/auth/update-role/${userId}`,
-        {
-          method: 'PUT',
-          headers: {
-            Authorization: `Bearer ${token}`,
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({ role: newRole }),
-        },
-      );
+          const data = await response.json();
 
-      const data = await response.json();
-
-      if (response.ok && data.success) {
-        alert(data.message);
-        fetchUsers();
-      } else {
-        alert(data.message || 'Failed to update user role');
-      }
-    } catch (err) {
-      console.error('Error updating role:', err);
-      alert('Network error. Please try again.');
-    } finally {
-      setUpdating(false);
-    }
+          if (response.ok && data.success) {
+            toast.success(
+              'Role Updated',
+              `User role changed to ${newRole} successfully`,
+            );
+            fetchUsers();
+          } else {
+            toast.error(
+              'Update Failed',
+              data.message || 'Failed to update user role',
+            );
+          }
+        } catch (err) {
+          console.error('Error updating role:', err);
+          toast.error('Error', 'Network error. Please try again.');
+        } finally {
+          setUpdating(false);
+        }
+      },
+    });
   };
 
-  const handleResetSession = async (userId: string) => {
-    if (
-      !confirm(
-        "Are you sure you want to reset this user's session? They will be logged out from all devices.",
-      )
-    )
-      return;
+  const handleResetSession = async (userId: string, userName: string) => {
+    setConfirmModal({
+      isOpen: true,
+      title: 'Reset User Session',
+      message: `Are you sure you want to reset "${userName}"'s session? They will be logged out from all devices immediately.`,
+      type: 'danger',
+      onConfirm: async () => {
+        setConfirmModal((prev) => ({ ...prev, isOpen: false }));
+        try {
+          setUpdating(true);
+          const token = localStorage.getItem('token');
 
-    try {
-      setUpdating(true);
-      const token = localStorage.getItem('token');
+          const response = await fetch(
+            `http://localhost:5000/api/auth/reset-session/${userId}`,
+            {
+              method: 'PUT',
+              headers: {
+                Authorization: `Bearer ${token}`,
+                'Content-Type': 'application/json',
+              },
+            },
+          );
 
-      const response = await fetch(
-        `http://localhost:5000/api/auth/reset-session/${userId}`,
-        {
-          method: 'PUT',
-          headers: {
-            Authorization: `Bearer ${token}`,
-            'Content-Type': 'application/json',
-          },
-        },
-      );
+          const data = await response.json();
 
-      const data = await response.json();
-
-      if (response.ok && data.success) {
-        alert(data.message);
-      } else {
-        alert(data.message || 'Failed to reset user session');
-      }
-    } catch (err) {
-      console.error('Error resetting session:', err);
-      alert('Network error. Please try again.');
-    } finally {
-      setUpdating(false);
-    }
+          if (response.ok && data.success) {
+            toast.info('Session Reset', data.message);
+          } else {
+            toast.error(
+              'Failed',
+              data.message || 'Failed to reset user session',
+            );
+          }
+        } catch (err) {
+          console.error('Error resetting session:', err);
+          toast.error('Error', 'Network error. Please try again.');
+        } finally {
+          setUpdating(false);
+        }
+      },
+    });
   };
 
   const getRoleBadgeColor = (role: string) => {
@@ -313,15 +453,15 @@ export default function AllUsers() {
                     setSelectedUser(user);
                     setShowUserModal(true);
                   }}
-                  className="p-1.5 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
+                  className="p-1.5 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors cursor-pointer"
                   title="View Details"
                 >
                   <Eye className="h-4 w-4" />
                 </button>
                 <button
-                  onClick={() => handleResetSession(user._id)}
+                  onClick={() => handleResetSession(user._id, user.fullName)}
                   disabled={updating}
-                  className="p-1.5 text-orange-600 hover:bg-orange-50 rounded-lg transition-colors disabled:opacity-50"
+                  className="p-1.5 text-orange-600 hover:bg-orange-50 rounded-lg transition-colors disabled:opacity-50 cursor-pointer"
                   title="Reset Session"
                 >
                   <Shield className="h-4 w-4" />
@@ -349,7 +489,9 @@ export default function AllUsers() {
                   <span className="text-gray-500 text-xs">Role:</span>
                   <select
                     value={user.role}
-                    onChange={(e) => handleUpdateRole(user._id, e.target.value)}
+                    onChange={(e) =>
+                      handleUpdateRole(user._id, e.target.value, user.role)
+                    }
                     disabled={updating}
                     className={`ml-2 text-xs rounded-full px-2 py-1 font-semibold ${getRoleBadgeColor(user.role)} border-0 cursor-pointer focus:ring-2 focus:ring-blue-500`}
                   >
@@ -448,7 +590,7 @@ export default function AllUsers() {
                     <select
                       value={user.role}
                       onChange={(e) =>
-                        handleUpdateRole(user._id, e.target.value)
+                        handleUpdateRole(user._id, e.target.value, user.role)
                       }
                       disabled={updating}
                       className={`text-xs rounded-full px-2 py-1 font-semibold ${getRoleBadgeColor(user.role)} border-0 cursor-pointer focus:ring-2 focus:ring-blue-500`}
@@ -464,7 +606,7 @@ export default function AllUsers() {
                         handleActivateUser(user._id, user.isActive)
                       }
                       disabled={updating}
-                      className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-semibold ${getStatusBadgeColor(user.isActive)}`}
+                      className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-semibold ${getStatusBadgeColor(user.isActive)} cursor-pointer`}
                     >
                       {user.isActive ? (
                         <>
@@ -492,7 +634,9 @@ export default function AllUsers() {
                         <Eye className="h-4 w-4" />
                       </button>
                       <button
-                        onClick={() => handleResetSession(user._id)}
+                        onClick={() =>
+                          handleResetSession(user._id, user.fullName)
+                        }
                         disabled={updating}
                         className="text-orange-600 hover:text-orange-900 hover:bg-white hover:p-1 rounded-md disabled:opacity-50 cursor-pointer"
                         title="Reset Session"
@@ -586,6 +730,18 @@ export default function AllUsers() {
           </div>
         </div>
       )}
+
+      {/* Professional Confirmation Modal */}
+      <ConfirmModal
+        isOpen={confirmModal.isOpen}
+        title={confirmModal.title}
+        message={confirmModal.message}
+        type={confirmModal.type}
+        onConfirm={confirmModal.onConfirm}
+        onCancel={() => setConfirmModal((prev) => ({ ...prev, isOpen: false }))}
+        confirmText="Yes, Proceed"
+        cancelText="Cancel"
+      />
     </div>
   );
 }
