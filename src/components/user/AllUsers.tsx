@@ -1,0 +1,591 @@
+/* eslint-disable react-hooks/exhaustive-deps */
+/* eslint-disable @typescript-eslint/no-explicit-any */
+'use client';
+
+import { Eye, RefreshCw, Shield, UserCheck, UserX, X } from 'lucide-react';
+import { useRouter } from 'next/navigation';
+import { useEffect, useState } from 'react';
+
+interface User {
+  _id: string;
+  fullName: string;
+  email: string;
+  mobileNumber: string;
+  address: string;
+  role: 'user' | 'admin' | 'moderator';
+  isActive: boolean;
+  createdAt: string;
+  updatedAt: string;
+}
+
+interface ModalField {
+  key: keyof User | 'status' | 'joinedDate' | 'lastUpdated';
+  label: string;
+  colSpan?: number;
+  isBadge?: boolean;
+  isDate?: boolean;
+}
+
+const modalFields: ModalField[] = [
+  { key: 'email', label: 'Email', colSpan: 1 },
+  { key: 'mobileNumber', label: 'Mobile Number', colSpan: 1 },
+  { key: 'address', label: 'Address', colSpan: 2 },
+  { key: 'role', label: 'Role', colSpan: 1, isBadge: true },
+  { key: 'status', label: 'Status', colSpan: 1, isBadge: true },
+  { key: 'joinedDate', label: 'Joined Date', colSpan: 1, isDate: true },
+  { key: 'lastUpdated', label: 'Last Updated', colSpan: 1, isDate: true },
+];
+
+export default function AllUsers() {
+  const router = useRouter();
+  const [users, setUsers] = useState<User[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState('');
+  const [selectedUser, setSelectedUser] = useState<User | null>(null);
+  const [showUserModal, setShowUserModal] = useState(false);
+  const [updating, setUpdating] = useState(false);
+
+  useEffect(() => {
+    fetchUsers();
+  }, []);
+
+  const fetchUsers = async () => {
+    try {
+      setLoading(true);
+      const token = localStorage.getItem('token');
+
+      if (!token) {
+        router.push('/login');
+        return;
+      }
+
+      const response = await fetch('http://localhost:5000/api/auth/users', {
+        headers: {
+          Authorization: `Bearer ${token}`,
+          'Content-Type': 'application/json',
+        },
+      });
+
+      const data = await response.json();
+
+      if (response.ok && data.success) {
+        setUsers(data.users);
+      } else {
+        setError(data.message || 'Failed to fetch users');
+        if (response.status === 401) {
+          localStorage.removeItem('token');
+          localStorage.removeItem('user');
+          router.push('/login');
+        }
+      }
+    } catch (err: any) {
+      console.error('Error fetching users:', err);
+      setError('Network error. Please try again.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleActivateUser = async (userId: string, currentStatus: boolean) => {
+    const action = currentStatus ? 'deactivate' : 'activate';
+    if (!confirm(`Are you sure you want to ${action} this user?`)) return;
+
+    try {
+      setUpdating(true);
+      const token = localStorage.getItem('token');
+
+      const response = await fetch(
+        `http://localhost:5000/api/auth/activate/${userId}`,
+        {
+          method: 'PUT',
+          headers: {
+            Authorization: `Bearer ${token}`,
+            'Content-Type': 'application/json',
+          },
+        },
+      );
+
+      const data = await response.json();
+
+      if (response.ok && data.success) {
+        alert(data.message);
+        fetchUsers();
+      } else {
+        alert(data.message || 'Failed to update user status');
+      }
+    } catch (err) {
+      console.error('Error updating user:', err);
+      alert('Network error. Please try again.');
+    } finally {
+      setUpdating(false);
+    }
+  };
+
+  const handleUpdateRole = async (userId: string, newRole: string) => {
+    if (
+      !confirm(
+        `Are you sure you want to change this user's role to ${newRole}?`,
+      )
+    )
+      return;
+
+    try {
+      setUpdating(true);
+      const token = localStorage.getItem('token');
+
+      const response = await fetch(
+        `http://localhost:5000/api/auth/update-role/${userId}`,
+        {
+          method: 'PUT',
+          headers: {
+            Authorization: `Bearer ${token}`,
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({ role: newRole }),
+        },
+      );
+
+      const data = await response.json();
+
+      if (response.ok && data.success) {
+        alert(data.message);
+        fetchUsers();
+      } else {
+        alert(data.message || 'Failed to update user role');
+      }
+    } catch (err) {
+      console.error('Error updating role:', err);
+      alert('Network error. Please try again.');
+    } finally {
+      setUpdating(false);
+    }
+  };
+
+  const handleResetSession = async (userId: string) => {
+    if (
+      !confirm(
+        "Are you sure you want to reset this user's session? They will be logged out from all devices.",
+      )
+    )
+      return;
+
+    try {
+      setUpdating(true);
+      const token = localStorage.getItem('token');
+
+      const response = await fetch(
+        `http://localhost:5000/api/auth/reset-session/${userId}`,
+        {
+          method: 'PUT',
+          headers: {
+            Authorization: `Bearer ${token}`,
+            'Content-Type': 'application/json',
+          },
+        },
+      );
+
+      const data = await response.json();
+
+      if (response.ok && data.success) {
+        alert(data.message);
+      } else {
+        alert(data.message || 'Failed to reset user session');
+      }
+    } catch (err) {
+      console.error('Error resetting session:', err);
+      alert('Network error. Please try again.');
+    } finally {
+      setUpdating(false);
+    }
+  };
+
+  const getRoleBadgeColor = (role: string) => {
+    const colors = {
+      admin: 'bg-purple-100 text-purple-800',
+      moderator: 'bg-blue-100 text-blue-800',
+      user: 'bg-gray-100 text-gray-800',
+    };
+    return colors[role as keyof typeof colors] || colors.user;
+  };
+
+  const getStatusBadgeColor = (isActive: boolean) => {
+    return isActive ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800';
+  };
+
+  const getModalFieldValue = (user: User, field: ModalField) => {
+    if (field.key === 'status') {
+      return user.isActive ? 'Active' : 'Inactive';
+    }
+    if (field.key === 'joinedDate') {
+      return new Date(user.createdAt).toLocaleString();
+    }
+    if (field.key === 'lastUpdated') {
+      return new Date(user.updatedAt).toLocaleString();
+    }
+    return user[field.key as keyof User];
+  };
+
+  const getModalFieldStyle = (user: User, field: ModalField) => {
+    if (field.isBadge) {
+      if (field.key === 'role') {
+        return getRoleBadgeColor(user.role);
+      }
+      if (field.key === 'status') {
+        return getStatusBadgeColor(user.isActive);
+      }
+    }
+    return '';
+  };
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center min-h-[60vh]">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto"></div>
+          <p className="mt-4 text-gray-600">Loading users...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="flex items-center justify-center min-h-[60vh]">
+        <div className="text-center">
+          <div className="text-red-600 text-xl mb-4">⚠️</div>
+          <p className="text-red-600">{error}</p>
+          <button
+            onClick={fetchUsers}
+            className="mt-4 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+          >
+            Try Again
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="w-full px-4 sm:px-6 py-4 sm:py-6">
+      {/* Header Section */}
+      <div className="mb-6 sm:mb-8">
+        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+          <div>
+            <h1 className="text-xl sm:text-2xl font-bold text-gray-900">
+              User Management
+            </h1>
+            <p className="text-sm sm:text-base text-gray-600 mt-1">
+              Total {users.length} user(s) found
+            </p>
+          </div>
+          <button
+            onClick={fetchUsers}
+            disabled={loading || updating}
+            className="flex items-center space-x-2 px-3 sm:px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 transition-colors cursor-pointer disabled:opacity-50 text-sm sm:text-base"
+          >
+            <RefreshCw className={`h-4 w-4 ${loading ? 'animate-spin' : ''}`} />
+            <span>Refresh</span>
+          </button>
+        </div>
+      </div>
+
+      {/* Mobile Card View - visible on small screens */}
+      <div className="block md:hidden space-y-4">
+        {users.map((user, index) => (
+          <div key={user._id} className="bg-white rounded-lg shadow p-4">
+            <div className="flex items-start justify-between mb-3">
+              <div className="flex items-center space-x-3">
+                <div className="h-10 w-10 rounded-full bg-linear-to-r from-blue-500 to-purple-600 flex items-center justify-center shrink-0">
+                  <span className="text-white font-medium text-sm">
+                    {user.fullName.charAt(0).toUpperCase()}
+                  </span>
+                </div>
+                <div>
+                  <h3 className="font-medium text-gray-900">{user.fullName}</h3>
+                  <p className="text-xs text-gray-500">
+                    ID: {user._id.slice(-6)}
+                  </p>
+                </div>
+              </div>
+              <div className="flex space-x-1">
+                <button
+                  onClick={() => {
+                    setSelectedUser(user);
+                    setShowUserModal(true);
+                  }}
+                  className="p-1.5 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
+                  title="View Details"
+                >
+                  <Eye className="h-4 w-4" />
+                </button>
+                <button
+                  onClick={() => handleResetSession(user._id)}
+                  disabled={updating}
+                  className="p-1.5 text-orange-600 hover:bg-orange-50 rounded-lg transition-colors disabled:opacity-50"
+                  title="Reset Session"
+                >
+                  <Shield className="h-4 w-4" />
+                </button>
+              </div>
+            </div>
+
+            <div className="space-y-2 text-sm">
+              <div>
+                <span className="text-gray-500">Email:</span>
+                <p className="text-gray-900 wrap-break-word">{user.email}</p>
+              </div>
+              <div>
+                <span className="text-gray-500">Mobile:</span>
+                <p className="text-gray-900">{user.mobileNumber}</p>
+              </div>
+              <div>
+                <span className="text-gray-500">Address:</span>
+                <p className="text-gray-900 text-sm wrap-break-word">
+                  {user.address}
+                </p>
+              </div>
+              <div className="flex justify-between items-center pt-2">
+                <div>
+                  <span className="text-gray-500 text-xs">Role:</span>
+                  <select
+                    value={user.role}
+                    onChange={(e) => handleUpdateRole(user._id, e.target.value)}
+                    disabled={updating}
+                    className={`ml-2 text-xs rounded-full px-2 py-1 font-semibold ${getRoleBadgeColor(user.role)} border-0 cursor-pointer focus:ring-2 focus:ring-blue-500`}
+                  >
+                    <option value="user">User</option>
+                    <option value="moderator">Moderator</option>
+                    <option value="admin">Admin</option>
+                  </select>
+                </div>
+                <button
+                  onClick={() => handleActivateUser(user._id, user.isActive)}
+                  disabled={updating}
+                  className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-semibold cursor-pointer ${getStatusBadgeColor(user.isActive)}`}
+                >
+                  {user.isActive ? (
+                    <div>
+                      <UserCheck className="h-3 w-3 mr-1" />
+                      Active
+                    </div>
+                  ) : (
+                    <>
+                      <UserX className="h-3 w-3 mr-1" />
+                      Inactive
+                    </>
+                  )}
+                </button>
+              </div>
+              <div className="text-xs text-gray-400 pt-1">
+                Joined: {new Date(user.createdAt).toLocaleDateString('bn-BD')}
+              </div>
+            </div>
+          </div>
+        ))}
+        {users.length === 0 && (
+          <div className="text-center py-12 bg-white rounded-lg shadow">
+            <p className="text-gray-500">No users found</p>
+          </div>
+        )}
+      </div>
+
+      {/* Desktop Table View - visible on medium and larger screens */}
+      <div className="hidden md:block bg-white shadow overflow-hidden rounded">
+        <div className="overflow-x-auto">
+          <table className="min-w-full divide-y divide-gray-200 rounded">
+            <thead className="bg-gray-400 ">
+              <tr>
+                <th className="border-r border-gray-200 px-4 py-3 text-center text-gray-800 text-md font-medium uppercase tracking-wider">
+                  #
+                </th>
+                <th className="border-r border-gray-200 px-4 py-3 text-center text-gray-800 text-md font-medium uppercase tracking-wider">
+                  User
+                </th>
+                <th className="border-r border-gray-200 px-4 py-3 text-center text-md font-medium text-gray-800 uppercase tracking-wider">
+                  Contact
+                </th>
+                <th className="border-r border-gray-200 px-4 py-3 text-center text-gray-800 text-md font-medium uppercase tracking-wider">
+                  Role
+                </th>
+                <th className="border-r border-gray-200 px-4 py-3 text-center text-md font-medium text-gray-800 uppercase tracking-wider">
+                  Status
+                </th>
+                <th className="border-r border-gray-200 px-4 py-3 text-center text-md font-medium text-gray-800 uppercase tracking-wider">
+                  Actions
+                </th>
+              </tr>
+            </thead>
+            <tbody className="bg-yellow-100 divide-y divide-gray-200">
+              {users.map((user, index) => (
+                <tr key={user._id} className="hover:bg-white transition-colors">
+                  <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-500 text-center border-r border-gray-300 hover:bg-yellow-200 transition-colors">
+                    {index + 1}
+                  </td>
+                  <td className="px-4 py-3 whitespace-nowrap text-center border-r border-gray-300 hover:bg-yellow-200 transition-colors">
+                    <div className="flex items-center">
+                      <div className="h-8 w-8 rounded-full bg-linear-to-r from-blue-500 to-purple-600 flex items-center justify-center">
+                        <span className="text-white font-medium text-sm">
+                          {user.fullName.charAt(0).toUpperCase()}
+                        </span>
+                      </div>
+                      <div className="ml-3">
+                        <div className="text-sm font-medium text-gray-900">
+                          {user.fullName}
+                        </div>
+                        <div className="text-xs text-gray-500">
+                          ID: {user._id.slice(-6)}
+                        </div>
+                      </div>
+                    </div>
+                  </td>
+                  <td className="px-4 py-3 text-center border-r border-gray-300 hover:bg-yellow-200 transition-colors">
+                    <div className="text-sm text-gray-900">{user.email}</div>
+                    <div className="text-xs text-gray-500">
+                      {user.mobileNumber}
+                    </div>
+                  </td>
+                  <td className="px-4 py-3 whitespace-nowrap text-center border-r border-gray-300 hover:bg-yellow-200 transition-colors">
+                    <select
+                      value={user.role}
+                      onChange={(e) =>
+                        handleUpdateRole(user._id, e.target.value)
+                      }
+                      disabled={updating}
+                      className={`text-xs rounded-full px-2 py-1 font-semibold ${getRoleBadgeColor(user.role)} border-0 cursor-pointer focus:ring-2 focus:ring-blue-500`}
+                    >
+                      <option value="user">User</option>
+                      <option value="moderator">Moderator</option>
+                      <option value="admin">Admin</option>
+                    </select>
+                  </td>
+                  <td className="px-4 py-3 whitespace-nowrap text-center border-r border-gray-300 hover:bg-yellow-200 transition-colors">
+                    <button
+                      onClick={() =>
+                        handleActivateUser(user._id, user.isActive)
+                      }
+                      disabled={updating}
+                      className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-semibold ${getStatusBadgeColor(user.isActive)}`}
+                    >
+                      {user.isActive ? (
+                        <>
+                          <UserCheck className="h-3 w-3 mr-1" />
+                          Active
+                        </>
+                      ) : (
+                        <>
+                          <UserX className="h-3 w-3 mr-1" />
+                          Inactive
+                        </>
+                      )}
+                    </button>
+                  </td>
+                  <td className="px-4 py-3 whitespace-nowrap text-sm font-medium text-center border-r border-gray-300 hover:bg-yellow-200 transition-colors">
+                    <div className="flex space-x-2">
+                      <button
+                        onClick={() => {
+                          setSelectedUser(user);
+                          setShowUserModal(true);
+                        }}
+                        className="text-blue-600 hover:text-blue-900 hover:bg-gray-50 rounded-lg transition-colors p-1.5 cursor-pointer"
+                        title="View Details"
+                      >
+                        <Eye className="h-4 w-4" />
+                      </button>
+                      <button
+                        onClick={() => handleResetSession(user._id)}
+                        disabled={updating}
+                        className="text-orange-600 hover:text-orange-900 hover:bg-white hover:p-1 rounded-md disabled:opacity-50 cursor-pointer"
+                        title="Reset Session"
+                      >
+                        <Shield className="h-4 w-4" />
+                      </button>
+                    </div>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+        {users.length === 0 && (
+          <div className="text-center py-12">
+            <p className="text-gray-500">No users found</p>
+          </div>
+        )}
+      </div>
+
+      {/* User Details Modal */}
+      {showUserModal && selectedUser && (
+        <div className="fixed inset-0 backdrop-blur-xs bg-black/30 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-lg p-4 sm:p-6 max-w-2xl w-full max-h-[90vh] overflow-y-auto shadow-2xl animate-in fade-in zoom-in duration-200">
+            <div className="flex justify-between items-center mb-4">
+              <h2 className="text-lg sm:text-xl font-bold text-gray-900 ">
+                User Details
+              </h2>
+              <button
+                onClick={() => setShowUserModal(false)}
+                className="text-gray-500 hover:bg-black hover:text-white rounded hover:cursor-pointer transition-colors"
+              >
+                <X className="h-7 w-7" />
+              </button>
+            </div>
+
+            <div className="flex items-center space-x-3 sm:space-x-4 mb-4 pb-3 border-b">
+              <div className="h-12 w-12 sm:h-16 sm:w-16 rounded-full bg-linear-to-r from-blue-500 to-purple-600 flex items-center justify-center">
+                <span className="text-white text-xl sm:text-2xl font-bold">
+                  {selectedUser.fullName.charAt(0).toUpperCase()}
+                </span>
+              </div>
+              <div>
+                <h3 className="text-base sm:text-lg font-semibold">
+                  {selectedUser.fullName}
+                </h3>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1  sm:grid-cols-2 gap-3 sm:gap-4">
+              {modalFields.map((field) => {
+                const value = getModalFieldValue(selectedUser, field);
+                const badgeStyle = getModalFieldStyle(selectedUser, field);
+
+                return (
+                  <div
+                    key={field.key}
+                    className={`border-b p-3 bg-yellow-100 flex flex-wrap items-start gap-2 ${
+                      field.colSpan === 2 ? 'sm:col-span-2' : ''
+                    }`}
+                  >
+                    <label className="text-xs sm:text-sm md:text-md font-medium text-gray-900 min-w-25 sm:min-w-30">
+                      {field.label}:
+                    </label>
+                    <div className="flex-1">
+                      {field.isBadge ? (
+                        <span
+                          className={`inline-flex px-2 sm:px-3 py-1 text-xs text-green-600 bg-green-100 sm:text-sm md:text-md font-semibold rounded-full`}
+                        >
+                          {value}
+                        </span>
+                      ) : (
+                        <p className="text-sm text-gray-900 wrap-break-word">
+                          {value as string}
+                        </p>
+                      )}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+
+            <div className="mt-6 flex justify-end">
+              <button
+                onClick={() => setShowUserModal(false)}
+                className="px-3 sm:px-4 py-2 bg-gray-700 text-white rounded cursor-pointer hover:bg-black hover:text-white transition-colors text-sm sm:text-base"
+              >
+                Close
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}

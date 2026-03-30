@@ -10,41 +10,66 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
-import { Calculator, History, LogOut, User } from 'lucide-react';
+import { Calculator, LogOut, User } from 'lucide-react';
 import Link from 'next/link';
-import { useRouter } from 'next/navigation';
+import { usePathname, useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
 
 interface UserData {
   id: string;
   fullName: string;
   email: string;
-  image?: string; // optional profile image
+  role?: string;
+  image?: string;
 }
 
 export function UserMenu() {
   const router = useRouter();
+  const pathname = usePathname();
   const [user, setUser] = useState<UserData | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
-  // Load user from localStorage
-  useEffect(() => {
+  // Function to load user from localStorage
+  const loadUser = () => {
     try {
+      const token = localStorage.getItem('token');
       const userData = localStorage.getItem('user');
-      if (userData) {
+
+      if (token && userData) {
         setUser(JSON.parse(userData));
+      } else {
+        setUser(null);
       }
     } catch (error) {
       console.error('Error parsing user data:', error);
+      setUser(null);
     } finally {
       setIsLoading(false);
     }
+  };
+
+  // Load user on mount and when route changes (to catch logout redirects)
+  useEffect(() => {
+    loadUser();
+  }, [pathname]); // Re-run when route changes
+
+  // Listen for storage events (in case localStorage changes in another tab)
+  useEffect(() => {
+    const handleStorageChange = (e: StorageEvent) => {
+      if (e.key === 'user' || e.key === 'token') {
+        loadUser();
+      }
+    };
+
+    window.addEventListener('storage', handleStorageChange);
+    return () => window.removeEventListener('storage', handleStorageChange);
   }, []);
 
   // Logout handler
   const handleLogout = () => {
     localStorage.removeItem('token');
     localStorage.removeItem('user');
+    setUser(null); // Immediately update state
     router.push('/sign-in');
   };
 
@@ -60,7 +85,7 @@ export function UserMenu() {
       .slice(0, 2);
   };
 
-  // ✅ Loading state
+  // Loading state
   if (isLoading) {
     return (
       <div className="flex items-center gap-2">
@@ -71,12 +96,12 @@ export function UserMenu() {
     );
   }
 
-  // ❌ Not logged in → show login button
+  // Not logged in → show login button
   if (!user) {
     return (
       <div className="flex items-center gap-2">
         <Link href="/sign-in">
-          <Button className="bg-gray-600 text-white rounded px-3 py-1 text-lg cursor-pointer">
+          <Button className="bg-gray-700 hover:bg-gray-900 text-white rounded px-4 py-2 text-sm cursor-pointer transition-colors">
             লগিন
           </Button>
         </Link>
@@ -84,7 +109,7 @@ export function UserMenu() {
     );
   }
 
-  // ✅ Logged in → show avatar + dropdown
+  // Logged in → show avatar + dropdown
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
@@ -103,6 +128,11 @@ export function UserMenu() {
           <div className="flex flex-col space-y-1">
             <p className="text-sm font-medium">{user.fullName}</p>
             <p className="text-xs text-muted-foreground">{user.email}</p>
+            {user.role && (
+              <p className="text-xs text-blue-600 font-medium mt-1">
+                {user.role === 'admin' ? 'অ্যাডমিন' : 'ইউজার'}
+              </p>
+            )}
           </div>
         </DropdownMenuLabel>
 
@@ -112,13 +142,6 @@ export function UserMenu() {
           <Link href="/dashboard/calculator" className="cursor-pointer">
             <Calculator className="mr-2 h-4 w-4" />
             ক্যালকুলেটর
-          </Link>
-        </DropdownMenuItem>
-
-        <DropdownMenuItem asChild>
-          <Link href="/dashboard" className="cursor-pointer">
-            <History className="mr-2 h-4 w-4" />
-            ড্যাশবোর্ড{' '}
           </Link>
         </DropdownMenuItem>
 

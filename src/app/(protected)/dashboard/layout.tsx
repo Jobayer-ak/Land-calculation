@@ -2,7 +2,7 @@
 // src/app/(protected)/calculator/CalculatorLayoutClient.tsx
 'use client';
 
-import { Calculator, LogOut, Menu, Settings, X } from 'lucide-react';
+import { Calculator, LogOut, Menu, Settings, Users, X } from 'lucide-react';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import { ReactNode, useEffect, useState } from 'react';
@@ -22,29 +22,40 @@ export default function CalculatorLayoutClient({
   // Get user from localStorage on client side only
   useEffect(() => {
     const userData = localStorage.getItem('user');
+    console.log('user role is: ', userData);
     if (userData) {
       setUser(JSON.parse(userData));
     }
   }, []);
 
-  const menuItems = [
-    {
-      name: 'আনা গন্ডা ক্যালকুলেটর',
-      icon: Calculator,
-      href: '/dashboard/calculator',
-    },
+  // Define menu items based on user role
+  const getMenuItems = () => {
+    const baseMenuItems = [
+      {
+        name: 'আনা গন্ডা ক্যালকুলেটর',
+        icon: Calculator,
+        href: '/dashboard/calculator',
+      },
+      {
+        name: 'সেটিংস',
+        icon: Settings,
+        href: '/dashboard/settings',
+      },
+    ];
 
-    {
-      name: 'সেটিংস',
-      icon: Settings,
-      href: '/dashboard/settings',
-    },
-    {
-      name: 'ইউজার লিস্ট',
-      icon: Settings,
-      href: '/dashboard/users',
-    },
-  ];
+    // Add user list item only for admin users
+    if (user.role === 'admin') {
+      baseMenuItems.push({
+        name: 'ইউজার লিস্ট',
+        icon: Users,
+        href: '/dashboard/users',
+      });
+    }
+
+    return baseMenuItems;
+  };
+
+  const menuItems = getMenuItems();
 
   const userInitial = user.fullName
     ? user.fullName.charAt(0).toUpperCase()
@@ -123,33 +134,39 @@ export default function CalculatorLayoutClient({
                   <p className="text-xs text-gray-400 truncate">
                     {user.email || 'user@example.com'}
                   </p>
+                  {/* Show role badge */}
+                  {user.role && (
+                    <p className="text-xs text-blue-400 mt-1">
+                      Role: {user.role}
+                    </p>
+                  )}
                 </div>
               </div>
               <button
                 onClick={() => setIsLogoutConfirmOpen(true)}
                 className="w-full flex items-center justify-center space-x-2 px-3 py-2 rounded-lg bg-red-600 hover:bg-red-700 transition-colors text-white"
               >
-                <LogOut className="h-4 w-4" />
+                <LogOut className="h-4 w-5" />
                 <span className="text-sm font-medium">Logout</span>
               </button>
             </div>
           ) : (
-            <div className="flex flex-col items-center mb-5">
+            <div className="flex flex-col items-center space-y-4">
               <div
-                className={`w-10 h-15 ${userColor} rounded-full flex items-center justify-center cursor-pointer`}
+                className={`w-10 h-10 ${userColor} rounded-full flex items-center justify-center cursor-pointer`}
                 title={user.fullName || 'User'}
               >
                 <span className="text-white font-bold text-lg">
                   {userInitial}
                 </span>
               </div>
-              {/* <button
-                onClick={() => setIsLogoutConfirmOpen(true)}
-                className="p-2 rounded-lg bg-red-600 hover:bg-red-700 transition-colors text-white"
-                title="Logout"
-              >
-                <LogOut className="h-4 w-4" />
-              </button> */}
+              {/* Optional: Show role indicator for collapsed sidebar */}
+              {user.role === 'admin' && (
+                <div
+                  className="w-2 h-2 bg-blue-500 rounded-full"
+                  title="Admin"
+                />
+              )}
             </div>
           )}
         </div>
@@ -160,6 +177,39 @@ export default function CalculatorLayoutClient({
       >
         <main className="p-2">{children}</main>
       </div>
+
+      {/* Logout Confirmation Modal */}
+      {isLogoutConfirmOpen && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg p-6 max-w-sm w-full mx-4">
+            <h3 className="text-lg font-semibold mb-4">Confirm Logout</h3>
+            <p className="text-gray-600 mb-6">
+              Are you sure you want to logout?
+            </p>
+            <div className="flex justify-end space-x-3">
+              <button
+                onClick={() => setIsLogoutConfirmOpen(false)}
+                className="px-4 py-2 text-gray-600 hover:text-gray-800 transition-colors"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={() => {
+                  setIsLogoutConfirmOpen(false);
+                  // Clear localStorage
+                  localStorage.removeItem('token');
+                  localStorage.removeItem('user');
+                  // Redirect to login
+                  router.push('/login');
+                }}
+                className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors"
+              >
+                Logout
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

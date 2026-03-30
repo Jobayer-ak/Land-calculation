@@ -1,9 +1,10 @@
-import UserTable from '../../../../components/user/UserTable';
+import AllUsers from '../../../../components/user/AllUsers';
 
 const page = () => {
   return (
-    <div>
-      <UserTable />
+    <div className="w-full ">
+      <AllUsers />
+      {/* <UserTable /> */}
     </div>
   );
 };
