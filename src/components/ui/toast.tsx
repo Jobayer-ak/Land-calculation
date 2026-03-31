@@ -60,7 +60,7 @@ const ToastItem = ({
   const getBgColor = () => {
     switch (type) {
       case 'success':
-        return 'bg-green-600';
+        return 'bg-green-800';
       case 'error':
         return 'bg-red-600';
       case 'warning':

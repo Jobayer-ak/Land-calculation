@@ -6,7 +6,6 @@ import { Calculator, LogOut, Menu, Settings, Users, X } from 'lucide-react';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import { ReactNode, useEffect, useState } from 'react';
-// import AuthProvider from './AuthProvider';
 
 export default function CalculatorLayoutClient({
   children,
@@ -17,7 +16,8 @@ export default function CalculatorLayoutClient({
   const router = useRouter();
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
   const [isLogoutConfirmOpen, setIsLogoutConfirmOpen] = useState(false);
-  const [user, setUser] = useState<any>({});
+  const [user, setUser] = useState<any>(null);
+  const [isLoading, setIsLoading] = useState(true);
 
   // Get user from localStorage on client side only
   useEffect(() => {
@@ -26,6 +26,7 @@ export default function CalculatorLayoutClient({
     if (userData) {
       setUser(JSON.parse(userData));
     }
+    setIsLoading(false);
   }, []);
 
   // Define menu items based on user role
@@ -43,8 +44,8 @@ export default function CalculatorLayoutClient({
       },
     ];
 
-    // Add user list item only for admin users
-    if (user.role === 'admin') {
+    // Show user list for admin OR moderator
+    if (user && (user.role === 'admin' || user.role === 'moderator')) {
       baseMenuItems.push({
         name: 'ইউজার লিস্ট',
         icon: Users,
@@ -57,7 +58,7 @@ export default function CalculatorLayoutClient({
 
   const menuItems = getMenuItems();
 
-  const userInitial = user.fullName
+  const userInitial = user?.fullName
     ? user.fullName.charAt(0).toUpperCase()
     : 'U';
   const userColors = [
@@ -73,20 +74,44 @@ export default function CalculatorLayoutClient({
   const userColor =
     userColors[Math.abs(userInitial.charCodeAt(0) - 65) % userColors.length];
 
-  // Wrap with AuthProvider to protect all calculator pages
+  // Get role display text in Bengali
+  const getRoleDisplay = (role: string) => {
+    switch (role) {
+      case 'admin':
+        return 'অ্যাডমিন';
+      case 'moderator':
+        return 'মডারেটর';
+      default:
+        return 'ইউজার';
+    }
+  };
+
+  if (isLoading) {
+    return (
+      <div className="min-h-screen bg-gray-100 flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto"></div>
+          <p className="mt-4 text-gray-600">Loading...</p>
+        </div>
+      </div>
+    );
+  }
+
   return (
-    <div className="min-h-screen bg-gray-100 flex">
+    <div className="min-h-screen bg-gray-200 flex">
       {/* Sidebar */}
       <aside
-        className={`bg-linear-to-b from-gray-900 to-gray-800 shadow-xl transition-all duration-300 ${isSidebarOpen ? 'w-64' : 'w-20'} fixed h-full z-10 flex flex-col`}
+        className={`bg-yellow-100 shadow-xl transition-all duration-300 ${isSidebarOpen ? 'w-64' : 'w-20'} fixed h-full z-10 flex flex-col`}
       >
-        <div className="p-4 border-b border-gray-700 flex items-center justify-between">
+        <div className="p-4 border-b border-gray-300 flex items-center justify-between">
           {isSidebarOpen && (
-            <h1 className="text-xl font-bold text-white">Land Calculator</h1>
+            <h1 className="text-lg font-bold text-gray-700">
+              ভূমি হিসেব ক্যালকুলেটর
+            </h1>
           )}
           <button
             onClick={() => setIsSidebarOpen(!isSidebarOpen)}
-            className="p-2 rounded-lg hover:bg-gray-700 transition-colors text-gray-300 hover:text-white"
+            className="p-2 rounded hover:bg-gray-700 transition-colors text-gray-৭00 hover:text-white cursor-pointer"
           >
             {isSidebarOpen ? (
               <X className="h-5 w-5" />
@@ -96,8 +121,8 @@ export default function CalculatorLayoutClient({
           </button>
         </div>
 
-        <nav className="flex-1 p-4">
-          <ul className="space-y-2">
+        <nav className="flex-1 py-4">
+          <ul className="space-y-0">
             {menuItems.map((item) => {
               const Icon = item.icon;
               const isActive = pathname === item.href;
@@ -105,7 +130,7 @@ export default function CalculatorLayoutClient({
                 <li key={item.name}>
                   <Link
                     href={item.href}
-                    className={`flex items-center space-x-3 p-3 rounded-lg transition-colors ${isActive ? 'bg-blue-600 text-white' : 'text-gray-300 hover:bg-gray-700 hover:text-white'}`}
+                    className={`flex items-center space-x-3 p-3 border-b shadow-xl transition-colors ${isActive ? ' text-white' : 'text-gray-700  hover:bg-gray-500 hover:text-white'}`}
                   >
                     <Icon className="h-5 w-5" />
                     {isSidebarOpen && <span>{item.name}</span>}
@@ -116,9 +141,9 @@ export default function CalculatorLayoutClient({
           </ul>
         </nav>
 
-        <div className="border-t border-gray-700 p-4">
+        <div className="border-t border-gray-300 p-4">
           {isSidebarOpen ? (
-            <div className="space-y-7">
+            <div className="space-y-10">
               <div className="flex items-center space-x-3">
                 <div
                   className={`w-10 h-10 ${userColor} rounded-full flex items-center justify-center`}
@@ -128,16 +153,16 @@ export default function CalculatorLayoutClient({
                   </span>
                 </div>
                 <div className="flex-1 min-w-0">
-                  <p className="text-sm font-medium text-white truncate">
-                    {user.fullName || 'User'}
+                  <p className="text-md font-medium text-gray-700 truncate">
+                    {user?.fullName || 'User'}
                   </p>
-                  <p className="text-xs text-gray-400 truncate">
-                    {user.email || 'user@example.com'}
+                  <p className="text-sm text-blue-700 truncate">
+                    {user?.email || 'user@example.com'}
                   </p>
                   {/* Show role badge */}
-                  {user.role && (
-                    <p className="text-xs text-blue-400 mt-1">
-                      Role: {user.role}
+                  {user?.role && (
+                    <p className="text-sm text-blue-700 mt-1">
+                      {getRoleDisplay(user.role)}
                     </p>
                   )}
                 </div>
@@ -154,17 +179,17 @@ export default function CalculatorLayoutClient({
             <div className="flex flex-col items-center space-y-4">
               <div
                 className={`w-10 h-10 ${userColor} rounded-full flex items-center justify-center cursor-pointer`}
-                title={user.fullName || 'User'}
+                title={user?.fullName || 'User'}
               >
                 <span className="text-white font-bold text-lg">
                   {userInitial}
                 </span>
               </div>
-              {/* Optional: Show role indicator for collapsed sidebar */}
-              {user.role === 'admin' && (
+              {/* Show role indicator for collapsed sidebar for both admin and moderator */}
+              {(user?.role === 'admin' || user?.role === 'moderator') && (
                 <div
                   className="w-2 h-2 bg-blue-500 rounded-full"
-                  title="Admin"
+                  title={user?.role === 'admin' ? 'Admin' : 'Moderator'}
                 />
               )}
             </div>
@@ -200,7 +225,7 @@ export default function CalculatorLayoutClient({
                   localStorage.removeItem('token');
                   localStorage.removeItem('user');
                   // Redirect to login
-                  router.push('/login');
+                  router.push('/sign-in');
                 }}
                 className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors"
               >

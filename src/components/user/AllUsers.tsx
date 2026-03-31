@@ -9,6 +9,7 @@ import {
   Eye,
   RefreshCw,
   Shield,
+  Trash2,
   UserCheck,
   UserX,
   X,
@@ -138,6 +139,7 @@ export default function AllUsers() {
   const [selectedUser, setSelectedUser] = useState<User | null>(null);
   const [showUserModal, setShowUserModal] = useState(false);
   const [updating, setUpdating] = useState(false);
+  const [currentUserRole, setCurrentUserRole] = useState<string>('');
 
   // Confirmation modal state
   const [confirmModal, setConfirmModal] = useState<{
@@ -155,6 +157,12 @@ export default function AllUsers() {
   });
 
   useEffect(() => {
+    // Get current user role
+    const userData = localStorage.getItem('user');
+    if (userData) {
+      const user = JSON.parse(userData);
+      setCurrentUserRole(user.role || 'user');
+    }
     fetchUsers();
   }, []);
 
@@ -168,12 +176,15 @@ export default function AllUsers() {
         return;
       }
 
-      const response = await fetch('http://localhost:5000/api/auth/users', {
-        headers: {
-          Authorization: `Bearer ${token}`,
-          'Content-Type': 'application/json',
+      const response = await fetch(
+        `${process.env.NEXT_PUBLIC_API_URL}/api/auth/users`,
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+            'Content-Type': 'application/json',
+          },
         },
-      });
+      );
 
       const data = await response.json();
 
@@ -197,7 +208,49 @@ export default function AllUsers() {
     }
   };
 
-  // New: Deactivate user function
+  // Delete user function (Admin only)
+  const handleDeleteUser = async (userId: string, userName: string) => {
+    setConfirmModal({
+      isOpen: true,
+      title: 'Delete User',
+      message: `Are you sure you want to permanently delete "${userName}"? This action cannot be undone.`,
+      type: 'danger',
+      onConfirm: async () => {
+        setConfirmModal((prev) => ({ ...prev, isOpen: false }));
+        try {
+          setUpdating(true);
+          const token = localStorage.getItem('token');
+
+          const response = await fetch(
+            `${process.env.NEXT_PUBLIC_API_URL}/api/auth/delete/${userId}`,
+            {
+              method: 'DELETE',
+              headers: {
+                Authorization: `Bearer ${token}`,
+                'Content-Type': 'application/json',
+              },
+            },
+          );
+
+          const data = await response.json();
+
+          if (response.ok && data.success) {
+            toast.success('User Deleted', data.message);
+            fetchUsers();
+          } else {
+            toast.error('Failed', data.message || 'Failed to delete user');
+          }
+        } catch (err) {
+          console.error('Error deleting user:', err);
+          toast.error('Error', 'Network error. Please try again.');
+        } finally {
+          setUpdating(false);
+        }
+      },
+    });
+  };
+
+  // Deactivate user function (Admin & Moderator)
   const handleDeactivateUser = async (userId: string, userName: string) => {
     setConfirmModal({
       isOpen: true,
@@ -211,7 +264,7 @@ export default function AllUsers() {
           const token = localStorage.getItem('token');
 
           const response = await fetch(
-            `http://localhost:5000/api/auth/deactivate/${userId}`,
+            `${process.env.NEXT_PUBLIC_API_URL}/api/auth/deactivate/${userId}`,
             {
               method: 'PUT',
               headers: {
@@ -239,11 +292,11 @@ export default function AllUsers() {
     });
   };
 
-  // Updated: Activate user function
+  // Activate user function (Admin & Moderator)
   const handleActivateUser = async (userId: string, currentStatus: boolean) => {
     const action = currentStatus ? 'deactivate' : 'activate';
 
-    // If trying to deactivate, use the new deactivate function
+    // If trying to deactivate, use the deactivate function
     if (currentStatus) {
       const user = users.find((u) => u._id === userId);
       if (user) {
@@ -254,9 +307,9 @@ export default function AllUsers() {
 
     setConfirmModal({
       isOpen: true,
-      title: `${action === 'activate' ? 'Activate' : 'Deactivate'} User`,
-      message: `Are you sure you want to ${action} this user? ${action === 'deactivate' ? 'They will not be able to login.' : 'They will be able to access the system.'}`,
-      type: action === 'activate' ? 'info' : 'warning',
+      title: 'Activate User',
+      message: `Are you sure you want to activate this user? They will be able to access the system.`,
+      type: 'info',
       onConfirm: async () => {
         setConfirmModal((prev) => ({ ...prev, isOpen: false }));
         try {
@@ -264,7 +317,7 @@ export default function AllUsers() {
           const token = localStorage.getItem('token');
 
           const response = await fetch(
-            `http://localhost:5000/api/auth/activate/${userId}`,
+            `${process.env.NEXT_PUBLIC_API_URL}/api/auth/activate/${userId}`,
             {
               method: 'PUT',
               headers: {
@@ -295,11 +348,21 @@ export default function AllUsers() {
     });
   };
 
+  // Update user role (Admin only)
   const handleUpdateRole = async (
     userId: string,
     newRole: string,
     currentRole: string,
   ) => {
+    // Only admin can change roles
+    if (currentUserRole !== 'admin') {
+      toast.error(
+        'Permission Denied',
+        'Only administrators can change user roles.',
+      );
+      return;
+    }
+
     setConfirmModal({
       isOpen: true,
       title: 'Change User Role',
@@ -312,7 +375,7 @@ export default function AllUsers() {
           const token = localStorage.getItem('token');
 
           const response = await fetch(
-            `http://localhost:5000/api/auth/update-role/${userId}`,
+            `${process.env.NEXT_PUBLIC_API_URL}/api/auth/update-role/${userId}`,
             {
               method: 'PUT',
               headers: {
@@ -347,7 +410,20 @@ export default function AllUsers() {
     });
   };
 
+  // Reset user session (Admin & Moderator) - WITH INACTIVE USER CHECK
   const handleResetSession = async (userId: string, userName: string) => {
+    // Find the user to check if they are active
+    const user = users.find((u) => u._id === userId);
+
+    // Check if user is inactive
+    if (user && !user.isActive) {
+      toast.warning(
+        'Cannot Reset Session',
+        `"${userName}" is not an active user. Please activate the user first before resetting their session.`,
+      );
+      return; // Don't proceed with the API call
+    }
+
     setConfirmModal({
       isOpen: true,
       title: 'Reset User Session',
@@ -360,7 +436,7 @@ export default function AllUsers() {
           const token = localStorage.getItem('token');
 
           const response = await fetch(
-            `http://localhost:5000/api/auth/reset-session/${userId}`,
+            `${process.env.NEXT_PUBLIC_API_URL}/api/auth/reset-session/${userId}`,
             {
               method: 'PUT',
               headers: {
@@ -375,12 +451,11 @@ export default function AllUsers() {
           if (response.ok && data.success) {
             toast.info('Session Reset', data.message);
 
-            // Check if the session being reset belongs to the current logged-in admin
+            // Check if the session being reset belongs to the current logged-in user
             const currentUserStr = localStorage.getItem('user');
             if (currentUserStr) {
               const currentUser = JSON.parse(currentUserStr);
               if (currentUser.id === userId) {
-                // This is the current admin's own session being reset
                 toast.warning(
                   'Session Reset',
                   'Your session has been reset. Please login again.',
@@ -400,7 +475,6 @@ export default function AllUsers() {
               data.message || 'Failed to reset user session',
             );
 
-            // If session reset failed due to unauthorized, redirect to login
             if (response.status === 401) {
               toast.error('Session Expired', 'Please login again.');
               setTimeout(() => {
@@ -458,6 +532,20 @@ export default function AllUsers() {
     return '';
   };
 
+  // Check if current user can delete (admin only)
+  const canDelete = () => currentUserRole === 'admin';
+
+  // Check if current user can change role (admin only)
+  const canChangeRole = () => currentUserRole === 'admin';
+
+  // Check if current user can activate/deactivate (admin or moderator)
+  const canToggleStatus = () =>
+    currentUserRole === 'admin' || currentUserRole === 'moderator';
+
+  // Check if current user can reset session (admin or moderator)
+  const canResetSession = () =>
+    currentUserRole === 'admin' || currentUserRole === 'moderator';
+
   if (loading) {
     return (
       <div className="flex items-center justify-center min-h-[60vh]">
@@ -502,7 +590,7 @@ export default function AllUsers() {
           <button
             onClick={fetchUsers}
             disabled={loading || updating}
-            className="flex items-center space-x-2 px-3 sm:px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 transition-colors cursor-pointer disabled:opacity-50 text-sm sm:text-base"
+            className="flex items-center space-x-2 px-3 sm:px-4 py-2 bg-gray-500 text-white rounded hover:bg-gray-700 hover:text-white transition-colors cursor-pointer disabled:opacity-50 text-sm sm:text-base"
           >
             <RefreshCw className={`h-4 w-4 ${loading ? 'animate-spin' : ''}`} />
             <span>Refresh</span>
@@ -539,14 +627,26 @@ export default function AllUsers() {
                 >
                   <Eye className="h-4 w-4" />
                 </button>
-                <button
-                  onClick={() => handleResetSession(user._id, user.fullName)}
-                  disabled={updating}
-                  className="p-1.5 text-orange-600 hover:bg-orange-50 rounded-lg transition-colors disabled:opacity-50 cursor-pointer"
-                  title="Reset Session"
-                >
-                  <Shield className="h-4 w-4" />
-                </button>
+                {canResetSession() && (
+                  <button
+                    onClick={() => handleResetSession(user._id, user.fullName)}
+                    disabled={updating}
+                    className="p-1.5 text-orange-600 hover:bg-orange-50 rounded-lg transition-colors disabled:opacity-50 cursor-pointer"
+                    title="Reset Session"
+                  >
+                    <Shield className="h-4 w-4" />
+                  </button>
+                )}
+                {canDelete() && user.role !== 'admin' && (
+                  <button
+                    onClick={() => handleDeleteUser(user._id, user.fullName)}
+                    disabled={updating}
+                    className="p-1.5 text-red-600 hover:bg-red-50 rounded-lg transition-colors disabled:opacity-50 cursor-pointer"
+                    title="Delete User"
+                  >
+                    <Trash2 className="h-4 w-4" />
+                  </button>
+                )}
               </div>
             </div>
 
@@ -573,31 +673,33 @@ export default function AllUsers() {
                     onChange={(e) =>
                       handleUpdateRole(user._id, e.target.value, user.role)
                     }
-                    disabled={updating}
-                    className={`ml-2 text-xs rounded-full px-2 py-1 font-semibold ${getRoleBadgeColor(user.role)} border-0 cursor-pointer focus:ring-2 focus:ring-blue-500`}
+                    disabled={updating || !canChangeRole()}
+                    className={`ml-2 text-xs rounded-full px-2 py-1 font-semibold ${getRoleBadgeColor(user.role)} border-0 ${canChangeRole() ? 'cursor-pointer' : 'cursor-not-allowed'} focus:ring-2 focus:ring-blue-500`}
                   >
                     <option value="user">User</option>
                     <option value="moderator">Moderator</option>
                     <option value="admin">Admin</option>
                   </select>
                 </div>
-                <button
-                  onClick={() => handleActivateUser(user._id, user.isActive)}
-                  disabled={updating}
-                  className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-semibold cursor-pointer ${getStatusBadgeColor(user.isActive)}`}
-                >
-                  {user.isActive ? (
-                    <div>
-                      <UserCheck className="h-3 w-3 mr-1" />
-                      Active
-                    </div>
-                  ) : (
-                    <>
-                      <UserX className="h-3 w-3 mr-1" />
-                      Inactive
-                    </>
-                  )}
-                </button>
+                {canToggleStatus() && (
+                  <button
+                    onClick={() => handleActivateUser(user._id, user.isActive)}
+                    disabled={updating}
+                    className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-semibold cursor-pointer ${getStatusBadgeColor(user.isActive)}`}
+                  >
+                    {user.isActive ? (
+                      <div>
+                        <UserCheck className="h-3 w-3 mr-1" />
+                        Active
+                      </div>
+                    ) : (
+                      <>
+                        <UserX className="h-3 w-3 mr-1" />
+                        Inactive
+                      </>
+                    )}
+                  </button>
+                )}
               </div>
               <div className="text-xs text-gray-400 pt-1">
                 Joined: {new Date(user.createdAt).toLocaleDateString('bn-BD')}
@@ -673,8 +775,8 @@ export default function AllUsers() {
                       onChange={(e) =>
                         handleUpdateRole(user._id, e.target.value, user.role)
                       }
-                      disabled={updating}
-                      className={`text-xs rounded-full px-2 py-1 font-semibold ${getRoleBadgeColor(user.role)} border-0 cursor-pointer focus:ring-2 focus:ring-blue-500`}
+                      disabled={updating || !canChangeRole()}
+                      className={`text-xs rounded-full px-2 py-1 font-semibold ${getRoleBadgeColor(user.role)} border-0 ${canChangeRole() ? 'cursor-pointer' : 'cursor-not-allowed'} focus:ring-2 focus:ring-blue-500`}
                     >
                       <option value="user">User</option>
                       <option value="moderator">Moderator</option>
@@ -682,28 +784,36 @@ export default function AllUsers() {
                     </select>
                   </td>
                   <td className="px-4 py-3 whitespace-nowrap text-center border-r border-gray-300 hover:bg-yellow-200 transition-colors">
-                    <button
-                      onClick={() =>
-                        handleActivateUser(user._id, user.isActive)
-                      }
-                      disabled={updating}
-                      className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-semibold ${getStatusBadgeColor(user.isActive)} cursor-pointer`}
-                    >
-                      {user.isActive ? (
-                        <>
-                          <UserCheck className="h-3 w-3 mr-1" />
-                          Active
-                        </>
-                      ) : (
-                        <>
-                          <UserX className="h-3 w-3 mr-1" />
-                          Inactive
-                        </>
-                      )}
-                    </button>
+                    {canToggleStatus() ? (
+                      <button
+                        onClick={() =>
+                          handleActivateUser(user._id, user.isActive)
+                        }
+                        disabled={updating}
+                        className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-semibold ${getStatusBadgeColor(user.isActive)} cursor-pointer`}
+                      >
+                        {user.isActive ? (
+                          <>
+                            <UserCheck className="h-3 w-3 mr-1" />
+                            Active
+                          </>
+                        ) : (
+                          <>
+                            <UserX className="h-3 w-3 mr-1" />
+                            Inactive
+                          </>
+                        )}
+                      </button>
+                    ) : (
+                      <span
+                        className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-semibold ${getStatusBadgeColor(user.isActive)}`}
+                      >
+                        {user.isActive ? 'Active' : 'Inactive'}
+                      </span>
+                    )}
                   </td>
                   <td className="px-4 py-3 whitespace-nowrap text-sm font-medium text-center border-r border-gray-300 hover:bg-yellow-200 transition-colors">
-                    <div className="flex space-x-2">
+                    <div className="flex space-x-2 justify-center">
                       <button
                         onClick={() => {
                           setSelectedUser(user);
@@ -714,16 +824,30 @@ export default function AllUsers() {
                       >
                         <Eye className="h-4 w-4" />
                       </button>
-                      <button
-                        onClick={() =>
-                          handleResetSession(user._id, user.fullName)
-                        }
-                        disabled={updating}
-                        className="text-orange-600 hover:text-orange-900 hover:bg-white hover:p-1 rounded-md disabled:opacity-50 cursor-pointer"
-                        title="Reset Session"
-                      >
-                        <Shield className="h-4 w-4" />
-                      </button>
+                      {canResetSession() && (
+                        <button
+                          onClick={() =>
+                            handleResetSession(user._id, user.fullName)
+                          }
+                          disabled={updating}
+                          className="text-orange-600 hover:text-orange-900 hover:bg-white rounded-md p-1.5 disabled:opacity-50 cursor-pointer"
+                          title="Reset Session"
+                        >
+                          <Shield className="h-4 w-4" />
+                        </button>
+                      )}
+                      {canDelete() && user.role !== 'admin' && (
+                        <button
+                          onClick={() =>
+                            handleDeleteUser(user._id, user.fullName)
+                          }
+                          disabled={updating}
+                          className="text-red-600 hover:text-red-900 hover:bg-white rounded-md p-1.5 disabled:opacity-50 cursor-pointer"
+                          title="Delete User"
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </button>
+                      )}
                     </div>
                   </td>
                 </tr>

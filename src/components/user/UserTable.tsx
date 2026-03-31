@@ -19,7 +19,9 @@ export default function UserTable() {
   useEffect(() => {
     const fetchData = async () => {
       try {
-        const response = await fetch('http://localhost:5000/api/auth/users');
+        const response = await fetch(
+          `${process.env.NEXT_PUBLIC_API_URL}/api/auth/users`,
+        );
         const result = await response.json();
         console.log('Fetched API result:', result);
 

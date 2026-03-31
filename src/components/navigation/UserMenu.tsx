@@ -123,16 +123,11 @@ export function UserMenu() {
         </Button>
       </DropdownMenuTrigger>
 
-      <DropdownMenuContent className="w-56" align="end" forceMount>
+      <DropdownMenuContent className="w-56 rounded" align="end" forceMount>
         <DropdownMenuLabel className="font-normal">
           <div className="flex flex-col space-y-1">
             <p className="text-sm font-medium">{user.fullName}</p>
             <p className="text-xs text-muted-foreground">{user.email}</p>
-            {user.role && (
-              <p className="text-xs text-blue-600 font-medium mt-1">
-                {user.role === 'admin' ? 'অ্যাডমিন' : 'ইউজার'}
-              </p>
-            )}
           </div>
         </DropdownMenuLabel>
 

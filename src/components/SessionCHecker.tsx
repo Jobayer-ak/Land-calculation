@@ -8,18 +8,21 @@ import { toast } from './ui/toast';
 export function SessionChecker({ children }: { children: React.ReactNode }) {
   const router = useRouter();
   const pathname = usePathname();
-  const checkInterval = useRef<NodeJS.Timeout>();
+  const checkInterval = useRef<NodeJS.Timeout | null>(null);
 
   const validateSession = async () => {
     const token = localStorage.getItem('token');
     if (!token) return;
 
     try {
-      const response = await fetch('http://localhost:5000/api/auth/verify', {
-        headers: {
-          Authorization: `Bearer ${token}`,
+      const response = await fetch(
+        `${process.env.NEXT_PUBLIC_API_URL}/api/auth/verify`,
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
         },
-      });
+      );
 
       const data = await response.json();
 

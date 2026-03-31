@@ -20,6 +20,7 @@ import {
 } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
+import { toast } from '@/components/ui/toast';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { Eye, EyeOff, Loader2 } from 'lucide-react';
 import Link from 'next/link';
@@ -134,13 +135,22 @@ export function RegisterForm() {
         throw new Error(errorMsg);
       }
 
-      // Handle successful registration
+      // Handle successful registration with toast instead of alert
       console.log('✅ Registration successful:', result);
-      alert('Registration successful! Please sign in.');
+
+      // Show success toast
+      toast.success(
+        'Registration Successful!',
+        'Your account has been created. Please wait for admin approval to login.',
+        5000,
+      );
+
       form.reset();
 
-      // ✅ Redirect to sign in page after successful registration
-      router.push('/sign-in');
+      // Redirect to sign in page after successful registration
+      setTimeout(() => {
+        router.push('/sign-in');
+      }, 2000);
     } catch (error: any) {
       console.error('❌ Registration error:', error);
 
@@ -152,7 +162,7 @@ export function RegisterForm() {
       }
 
       setErrorMessage(message);
-      alert(message);
+      toast.error('Registration Failed', message);
     } finally {
       setIsLoading(false);
     }
@@ -186,6 +196,7 @@ export function RegisterForm() {
                     <Input
                       placeholder="John Doe"
                       disabled={isLoading}
+                      className="bg-gray-100 rounded"
                       {...field}
                     />
                   </FormControl>
@@ -206,6 +217,7 @@ export function RegisterForm() {
                       <Input
                         placeholder="john@example.com"
                         type="email"
+                        className="bg-gray-100 rounded"
                         disabled={isLoading}
                         {...field}
                       />
@@ -225,6 +237,7 @@ export function RegisterForm() {
                       <Input
                         placeholder="+1 234 567 8900"
                         type="tel"
+                        className="bg-gray-100 rounded"
                         disabled={isLoading}
                         {...field}
                       />
@@ -246,7 +259,7 @@ export function RegisterForm() {
                     <Textarea
                       placeholder="Enter your full address"
                       disabled={isLoading}
-                      className="resize-none"
+                      className="resize-none bg-gray-100 rounded"
                       rows={3}
                       {...field}
                     />
@@ -269,6 +282,7 @@ export function RegisterForm() {
                         <Input
                           placeholder="Enter your password"
                           type={showPassword ? 'text' : 'password'}
+                          className="bg-gray-100 rounded"
                           disabled={isLoading}
                           {...field}
                         />
@@ -276,7 +290,7 @@ export function RegisterForm() {
                           type="button"
                           variant="ghost"
                           size="sm"
-                          className="absolute right-0 top-0 h-full px-3 py-2 hover:bg-transparent"
+                          className="absolute rounded bg-gray-100 right-0 top-0 h-full px-3 py-2 hover:bg-transparent"
                           onClick={() => setShowPassword(!showPassword)}
                           disabled={isLoading}
                         >
@@ -304,6 +318,7 @@ export function RegisterForm() {
                         <Input
                           placeholder="Confirm your password"
                           type={showConfirmPassword ? 'text' : 'password'}
+                          className="bg-gray-100 rounded"
                           disabled={isLoading}
                           {...field}
                         />
@@ -333,7 +348,7 @@ export function RegisterForm() {
 
             <Button
               type="submit"
-              className="w-full cursor-pointer"
+              className="w-full cursor-pointer rounded"
               disabled={isLoading}
             >
               {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
@@ -346,8 +361,8 @@ export function RegisterForm() {
         <p className="text-sm text-muted-foreground">
           Already have an account?{' '}
           <Link
-            href="/sign-in" // ✅ Fixed: Added leading slash
-            className="text-primary font-medium hover:underline"
+            href="/sign-in"
+            className="text-blue-600 font-medium hover:underline"
           >
             Sign in
           </Link>
