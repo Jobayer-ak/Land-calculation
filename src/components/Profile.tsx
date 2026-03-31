@@ -372,7 +372,7 @@ export default function ProfilePage() {
                   placeholder="Enter your mobile number"
                 />
               ) : (
-                <p className="text-sm sm:text-base text-gray-900 font-medium break-words">
+                <p className="text-sm sm:text-base text-gray-900 font-medium wrap-break-word">
                   {profile.mobileNumber}
                 </p>
               )}
@@ -413,7 +413,7 @@ export default function ProfilePage() {
                   <Calendar className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
                   <span>Joined:</span>
                 </div>
-                <span className="text-gray-900 break-words">
+                <span className="text-gray-900 wrap-break-word">
                   {formatDate(profile.createdAt)}
                 </span>
               </div>

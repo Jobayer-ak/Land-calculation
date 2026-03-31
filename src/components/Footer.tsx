@@ -13,8 +13,6 @@ import {
 import Link from 'next/link';
 
 export default function Footer() {
-  const currentYear = new Date().getFullYear();
-
   return (
     <footer className="bg-gray-200 text-gray-700">
       {/* Main Footer */}
@@ -32,31 +30,31 @@ export default function Footer() {
             <div className="flex space-x-3">
               <a
                 href="#"
-                className="bg-gray-800 hover:bg-blue-600 p-2 rounded-full transition-colors"
+                className="bg-blue-400 hover:bg-blue-600 p-2 rounded-full transition-colors"
                 aria-label="Facebook"
               >
-                <Facebook className="h-4 w-4" />
+                <Facebook className="h-4 w-4 text-white" />
               </a>
               <a
                 href="#"
-                className="bg-gray-800 hover:bg-blue-400 p-2 rounded-full transition-colors"
+                className="bg-blue-400 hover:bg-blue-600 p-2 rounded-full transition-colors"
                 aria-label="Twitter"
               >
-                <Twitter className="h-4 w-4" />
+                <Twitter className="h-4 w-4 text-white" />
               </a>
               <a
                 href="#"
-                className="bg-gray-800 hover:bg-red-600 p-2 rounded-full transition-colors"
+                className="bg-blue-400  hover:bg-red-600 p-2 rounded-full transition-colors"
                 aria-label="YouTube"
               >
-                <Youtube className="h-4 w-4" />
+                <Youtube className="h-4 w-4 text-white" />
               </a>
               <a
                 href="#"
-                className="bg-gray-800 hover:bg-blue-700 p-2 rounded-full transition-colors"
+                className="bg-blue-400 hover:bg-blue-600 p-2 rounded-full transition-colors"
                 aria-label="LinkedIn"
               >
-                <Linkedin className="h-4 w-4" />
+                <Linkedin className="h-4 w-4 text-white" />
               </a>
             </div>
           </div>

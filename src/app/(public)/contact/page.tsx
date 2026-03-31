@@ -18,12 +18,6 @@ import {
 } from 'lucide-react';
 import { useState } from 'react';
 
-// export const metadata = {
-//   title: 'যোগাযোগ | ভূমি হিসেব ক্যালকুলেটর',
-//   description:
-//     'আমাদের সাথে যোগাযোগ করুন। আপনার যেকোনো প্রশ্ন বা মতামত আমাদের জানান।',
-// };
-
 export default function ContactPage() {
   const [formData, setFormData] = useState({
     name: '',
@@ -87,7 +81,7 @@ export default function ContactPage() {
 
               <div className="space-y-6">
                 <div className="flex items-start gap-4">
-                  <div className="w-12 h-12 bg-green-100 rounded-full flex items-center justify-center flex-shrink-0">
+                  <div className="w-12 h-12 bg-green-100 rounded-full flex items-center justify-center shrink-0">
                     <MapPin className="h-6 w-6 text-green-600" />
                   </div>
                   <div>
@@ -103,7 +97,7 @@ export default function ContactPage() {
                 </div>
 
                 <div className="flex items-start gap-4">
-                  <div className="w-12 h-12 bg-blue-100 rounded-full flex items-center justify-center flex-shrink-0">
+                  <div className="w-12 h-12 bg-blue-100 rounded-full flex items-center justify-center shrink-0">
                     <Phone className="h-6 w-6 text-blue-600" />
                   </div>
                   <div>
@@ -127,7 +121,7 @@ export default function ContactPage() {
                 </div>
 
                 <div className="flex items-start gap-4">
-                  <div className="w-12 h-12 bg-orange-100 rounded-full flex items-center justify-center flex-shrink-0">
+                  <div className="w-12 h-12 bg-orange-100 rounded-full flex items-center justify-center shrink-0">
                     <Mail className="h-6 w-6 text-orange-600" />
                   </div>
                   <div>

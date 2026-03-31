@@ -23,7 +23,7 @@ export default function AboutPage() {
   return (
     <div className="min-h-screen bg-gray-50">
       {/* Hero Section */}
-      <section className="relative bg-gradient-to-r from-green-800 to-green-900 text-white py-20">
+      <section className="relative bg-linear-to-r from-green-800 to-green-900 text-white py-20">
         <div className="absolute inset-0 bg-black/20"></div>
         <div className="container mx-auto px-4 relative z-10">
           <div className="max-w-3xl mx-auto text-center">
@@ -223,7 +223,7 @@ export default function AboutPage() {
               { title: 'টিমওয়ার্ক', desc: 'সবাই মিলে সম্মিলিত প্রচেষ্টা' },
             ].map((value, index) => (
               <div key={index} className="flex items-start gap-3">
-                <CheckCircle className="h-6 w-6 text-green-600 flex-shrink-0 mt-0.5" />
+                <CheckCircle className="h-6 w-6 text-green-600 shrink-0 mt-0.5" />
                 <div>
                   <h3 className="font-semibold text-gray-800 mb-1">
                     {value.title}
@@ -237,7 +237,7 @@ export default function AboutPage() {
       </section>
 
       {/* Contact CTA */}
-      <section className="py-16 bg-gradient-to-r from-green-600 to-green-700 text-white">
+      <section className="py-16 bg-linear-to-r from-green-600 to-green-700 text-white">
         <div className="container mx-auto px-4 text-center">
           <h2 className="text-3xl md:text-4xl font-bold mb-4">
             আরও জানতে চান?
