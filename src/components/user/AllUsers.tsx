@@ -164,7 +164,7 @@ export default function AllUsers() {
       const token = localStorage.getItem('token');
 
       if (!token) {
-        router.push('/login');
+        router.push('/sign-in');
         return;
       }
 
@@ -179,14 +179,13 @@ export default function AllUsers() {
 
       if (response.ok && data.success) {
         setUsers(data.users);
-        // toast.success('Users Loaded', `Found ${data.users.length} users`);
       } else {
         setError(data.message || 'Failed to fetch users');
         toast.error('Error', data.message || 'Failed to fetch users');
         if (response.status === 401) {
           localStorage.removeItem('token');
           localStorage.removeItem('user');
-          router.push('/login');
+          router.push('/sign-in');
         }
       }
     } catch (err: any) {
@@ -198,8 +197,60 @@ export default function AllUsers() {
     }
   };
 
+  // New: Deactivate user function
+  const handleDeactivateUser = async (userId: string, userName: string) => {
+    setConfirmModal({
+      isOpen: true,
+      title: 'Deactivate User',
+      message: `Are you sure you want to deactivate "${userName}"? They will not be able to login and will be logged out immediately.`,
+      type: 'danger',
+      onConfirm: async () => {
+        setConfirmModal((prev) => ({ ...prev, isOpen: false }));
+        try {
+          setUpdating(true);
+          const token = localStorage.getItem('token');
+
+          const response = await fetch(
+            `http://localhost:5000/api/auth/deactivate/${userId}`,
+            {
+              method: 'PUT',
+              headers: {
+                Authorization: `Bearer ${token}`,
+                'Content-Type': 'application/json',
+              },
+            },
+          );
+
+          const data = await response.json();
+
+          if (response.ok && data.success) {
+            toast.warning('User Deactivated', data.message);
+            fetchUsers();
+          } else {
+            toast.error('Failed', data.message || 'Failed to deactivate user');
+          }
+        } catch (err) {
+          console.error('Error deactivating user:', err);
+          toast.error('Error', 'Network error. Please try again.');
+        } finally {
+          setUpdating(false);
+        }
+      },
+    });
+  };
+
+  // Updated: Activate user function
   const handleActivateUser = async (userId: string, currentStatus: boolean) => {
     const action = currentStatus ? 'deactivate' : 'activate';
+
+    // If trying to deactivate, use the new deactivate function
+    if (currentStatus) {
+      const user = users.find((u) => u._id === userId);
+      if (user) {
+        handleDeactivateUser(userId, user.fullName);
+      }
+      return;
+    }
 
     setConfirmModal({
       isOpen: true,
@@ -323,11 +374,41 @@ export default function AllUsers() {
 
           if (response.ok && data.success) {
             toast.info('Session Reset', data.message);
+
+            // Check if the session being reset belongs to the current logged-in admin
+            const currentUserStr = localStorage.getItem('user');
+            if (currentUserStr) {
+              const currentUser = JSON.parse(currentUserStr);
+              if (currentUser.id === userId) {
+                // This is the current admin's own session being reset
+                toast.warning(
+                  'Session Reset',
+                  'Your session has been reset. Please login again.',
+                );
+                setTimeout(() => {
+                  localStorage.removeItem('token');
+                  localStorage.removeItem('user');
+                  router.push('/sign-in');
+                }, 1500);
+              }
+            }
+
+            fetchUsers();
           } else {
             toast.error(
               'Failed',
               data.message || 'Failed to reset user session',
             );
+
+            // If session reset failed due to unauthorized, redirect to login
+            if (response.status === 401) {
+              toast.error('Session Expired', 'Please login again.');
+              setTimeout(() => {
+                localStorage.removeItem('token');
+                localStorage.removeItem('user');
+                router.push('/sign-in');
+              }, 1500);
+            }
           }
         } catch (err) {
           console.error('Error resetting session:', err);

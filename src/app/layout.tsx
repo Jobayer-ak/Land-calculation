@@ -1,6 +1,7 @@
 import type { Metadata } from 'next';
 import { Geist, Geist_Mono } from 'next/font/google';
 import { Navbar } from '../components/navigation/Navbar';
+import { SessionChecker } from '../components/SessionCHecker';
 import { ToastContainer } from '../components/ui/toast';
 import './globals.css';
 
@@ -30,23 +31,20 @@ export default function RootLayout({
         className={`${geistSans.variable} ${geistMono.variable} antialiased bg-[#2c2638] min-h-screen flex flex-col justify-between`}
         suppressHydrationWarning
       >
-        <Navbar />
-        {children}
-        <ToastContainer />
-        <footer className="w-full text-center mt-3 py-4 bg-gray-300">
-          <p className="text-sm text-gray-900">
-            <span className="text-blue-600">©</span> {new Date().getFullYear()}{' '}
-            ভূমি হিসেব ক্যালকুলেটর.{' '}
-            <span className="italic text-blue-700">
-              All rights reserved by{' '}
-            </span>
-            <span className="text-amber-900 font-semibold">
-              {' '}
-              Md. Jobayer Akanda <span className="text-blue-500">& </span>
-              Md. Mozameml Hoq
-            </span>
-          </p>
-        </footer>
+        <SessionChecker>
+          <Navbar />
+          {children}
+          <ToastContainer />
+          <footer className="w-full text-center mt-3 py-4 bg-gray-300">
+            <p className="text-sm text-gray-900">
+              <span className="italic text-blue-700">
+                All rights reserved by{' '}
+              </span>
+              <span className="text-blue-600">© </span>
+              ভূমি হিসেব ক্যালকুলেটর{' '}
+            </p>
+          </footer>
+        </SessionChecker>
       </body>
     </html>
   );
